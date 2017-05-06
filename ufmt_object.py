@@ -257,8 +257,8 @@ class Ufmt_Set (object):
         return None
 
     def load_from_sql ( self, file_name ):
-        #rec_list = parse_insert_sql_files ( file_name)
-        file = open( file_name + '.sql', 'r')
+        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+        file = open( file_path, 'r')
         po = re.compile( r'Insert\s+into\s+(\w+)\s*\((.*)\)\s*values\s*\((.*)\);', re.I)
         data_dict = {}
         data_table = []
@@ -284,8 +284,9 @@ Delete from {table};
 """.format( table = self.get_table_name() )
         file_trailer_str = "\nCOMMIT;\n"
         insert_sql_fmt = self.get_insert_sql_fmt() + '\n'
-        
-        file = open( file_name + '.sql' , 'w')
+
+        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+        file = open( file_path , 'w')
         file.write( file_header_str )
         for key in self.set:
             val_str = ','.join ( ["'%s'" % i for i in self.set[key].__list__() ] )
