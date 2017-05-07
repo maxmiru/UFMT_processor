@@ -1,31 +1,3 @@
-#!python3
-'''
-This module define classes that are used by ufmt_data_processor
-'''
-
-import os, openpyxl, logging, sys, re, csv
-
-#Convert functions - start
-def To_Int( ext_string ):
-    if not ext_string.isdecimal():
-        return None
-    return int(ext_string)
-
-def To_Str( ext_string ):
-    if ext_string == '':
-        return None
-    return ext_string
-
-def From_Str( string ):
-    if string is None:
-        return ''
-    return string
-
-def From_Int ( integer ):
-    if integer is None:
-        return ''
-    return str( integer )
-#Convert functions - end
 
 class Ufmt_Value(object):
 
@@ -268,53 +240,6 @@ class Ufmt_Format_Select(object):
     def __list__(self ):
         return [From_Str(self.formatter), From_Int(self.rule_num), From_Str(self.route_type), From_Str(self.service_id_in), From_Str(self.trans_type_in), From_Str(self.msg_type_in), From_Str(self.reversal_in), From_Str(self.mti), From_Int(self.format_id), From_Str(self.trans_type_out), From_Str(self.msg_type_out), From_Str(self.reversal_out), From_Str(self.fIntran_in), From_Str(self.acq_inst_in), From_Str(self.iss_inst_in), From_Str(self.service_type_in)]
 
-class Ufmt_Set (object):
-    def __init__ ( self ):
-        self.set = {}
-        
-    def new_element( self, value_list ):
-        return None
-
-    def load_from_sql ( self, file_name ):
-        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
-        file = open( file_path, 'r')
-        po = re.compile( r'Insert\s+into\s+(\w+)\s*\((.*)\)\s*values\s*\((.*)\);', re.I)
-        data_dict = {}
-        data_table = []
-        value_strings = []
-        for line in file:
-            mo = po.match( line )
-            if mo != None and mo.group(3) != None:
-                value_strings.append( mo.group(3).strip() )
-        file.close()
-
-        #print(value_strings)
-        #return list(csv.reader( value_strings, 'singlequote_dialect' ))
-        csv.register_dialect('singlequote_dialect', quotechar ="'")
-        for rec in csv.reader( value_strings, 'singlequote_dialect' ):
-            elm = self.new_element(rec)
-            self.set[elm.key] = elm
-
-    def export_to_sql ( self, file_name ):
-        file_header_str = """\
-Drop table {table}_BK;
-Create table {table}_BK as Select * from {table};
-Delete from {table};
-
-""".format( table = self.get_table_name() )
-        file_trailer_str = "\nCOMMIT;\n"
-        insert_sql_fmt = self.get_insert_sql_fmt() + '\n'
-
-        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
-        file = open( file_path , 'w')
-        file.write( file_header_str )
-        for key in self.set:
-            val_str = ','.join ( ["'%s'" % i for i in self.set[key].__list__() ] )
-            sql_str = insert_sql_fmt.format( values = val_str )
-            file.write( sql_str )
-
-        file.write( file_trailer_str)
-        file.close()        
 
 class Ufmt_Value_Set (Ufmt_Set):
     def new_element( self, value_list ):
@@ -423,47 +348,3 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_FORMAT_SELECT"
 
-tables = ('UFMT_VALUE', 'UFMT_CONVERSION', 'UFMT_CONV_RULE', 'UFMT_CONDITION', 'UFMT_FIELD_FORMAT', 'UFMT_FORMAT', 'UFMT_FIELD', 'UFMT_BUILD_RULE', 'UFMT_FORMAT_SELECT' )
-
-class Ufmt_Data_Set (object):
-    def __init__ ( self ):
-        self.values = Ufmt_Value_Set()
-        self.conversions = Ufmt_Conversion_Set()
-        self.conv_rules = Ufmt_Conv_Rule_Set()
-        self.conditions = Ufmt_Condition_Set()
-        self.field_formats = Ufmt_Field_Format_Set()
-        self.formats = Ufmt_Format_Set()
-        self.fields = Ufmt_Field_Set()
-        self.build_rules = Ufmt_Build_Rule_Set()
-        self.format_selects = Ufmt_Format_Select_Set()
-
-    def load_from_sql( self ):
-        self.values.load_from_sql('UFMT_VALUE')
-        self.conversions.load_from_sql('UFMT_CONVERSION')
-        self.conv_rules.load_from_sql('UFMT_CONV_RULE')
-        self.conditions.load_from_sql('UFMT_CONDITION')
-        self.field_formats.load_from_sql('UFMT_FIELD_FORMAT')
-        self.formats.load_from_sql('UFMT_FORMAT')
-        self.fields.load_from_sql('UFMT_FIELD')
-        self.build_rules.load_from_sql('UFMT_BUILD_RULE')
-        self.format_selects.load_from_sql('UFMT_FORMAT_SELECT')
-
-    def export_to_sql( self ):
-        self.values.export_to_sql('UFMT_VALUE_1')
-        self.conversions.export_to_sql('UFMT_CONVERSION_1')
-        self.conv_rules.export_to_sql('UFMT_CONV_RULE_1')
-        self.conditions.export_to_sql('UFMT_CONDITION_1')
-        self.field_formats.export_to_sql('UFMT_FIELD_FORMAT_1')
-        self.formats.export_to_sql('UFMT_FORMAT_1')
-        self.fields.export_to_sql('UFMT_FIELD_1')
-        self.build_rules.export_to_sql('UFMT_BUILD_RULE_1')
-        self.format_selects.export_to_sql('UFMT_FORMAT_SELECT_1')
-        
-def test():
-    data_set = Ufmt_Data_Set()
-    data_set.load_from_sql()
-    data_set.export_to_sql()
-    
-if __name__ == '__main__':
-    test()
-    
