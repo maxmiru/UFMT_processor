@@ -1,6 +1,7 @@
 Drop table UFMT_VALUE_BK;
 Create table UFMT_VALUE_BK as Select * from UFMT_VALUE;
 Delete from UFMT_VALUE;
+
 Insert into UFMT_VALUE ( VALUE_ID, VALUE_TYPE, VALUE_SUBTYPE, VALUE, DESCRIPTION ) Values ( '1','0','0','','Const, empty string' );
 Insert into UFMT_VALUE ( VALUE_ID, VALUE_TYPE, VALUE_SUBTYPE, VALUE, DESCRIPTION ) Values ( '2','1','0','1','Tag, SVT_CARD_NUM' );
 Insert into UFMT_VALUE ( VALUE_ID, VALUE_TYPE, VALUE_SUBTYPE, VALUE, DESCRIPTION ) Values ( '3','1','1','145','Tag, SVT_TXN_TYPE' );

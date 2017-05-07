@@ -1,6 +1,7 @@
 Drop table UFMT_CONVERSION_BK;
 Create table UFMT_CONVERSION_BK as Select * from UFMT_CONVERSION;
 Delete from UFMT_CONVERSION;
+
 Insert into UFMT_CONVERSION ( CONV_KEY, CONV_TYPE, DESCRIPTION ) Values ( '1','0','iBSM Trans_type -> Prcode' );
 Insert into UFMT_CONVERSION ( CONV_KEY, CONV_TYPE, DESCRIPTION ) Values ( '2','0','Account From/To -> Prcode' );
 Insert into UFMT_CONVERSION ( CONV_KEY, CONV_TYPE, DESCRIPTION ) Values ( '3','2','YYYYMMDD to YYMMDD' );

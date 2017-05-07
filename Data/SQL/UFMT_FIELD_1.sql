@@ -1,6 +1,7 @@
 Drop table UFMT_FIELD_BK;
 Create table UFMT_FIELD_BK as Select * from UFMT_FIELD;
 Delete from UFMT_FIELD;
+
 Insert into UFMT_FIELD ( FORMAT_ID, FIELD_NO, F_MAC, F_KEY, F_MANDATORY, DESCRIPTION ) Values ( '1','1','0','0','0','iBSM DE54 record#1' );
 Insert into UFMT_FIELD ( FORMAT_ID, FIELD_NO, F_MAC, F_KEY, F_MANDATORY, DESCRIPTION ) Values ( '1','2','0','0','0','iBSM DE54 record#2' );
 Insert into UFMT_FIELD ( FORMAT_ID, FIELD_NO, F_MAC, F_KEY, F_MANDATORY, DESCRIPTION ) Values ( '1','3','0','0','0','iBSM DE54 record#3' );
