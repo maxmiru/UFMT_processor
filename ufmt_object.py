@@ -48,7 +48,9 @@ class Ufmt_Value(object):
     def __list__(self ):
         return [From_Int(self.value_id), From_Int(self.value_type), From_Int(self.value_subtype), From_Str(self.value), From_Str(self.description)]
 
-
+    def get_excel_values ( self ):
+        return [ self.value_id, self.value_type, self.value_subtype, self.value, self.description ]
+    
 class Ufmt_Conversion(object):
 
     def __init__( self, conv_key, conv_type, description):
@@ -271,7 +273,11 @@ class Ufmt_Format_Select(object):
 class Ufmt_Set (object):
     def __init__ ( self ):
         self.set = {}
-        
+        self.headers = []
+
+    def get_headers ( self ):
+        return self.headers
+      
     def new_element( self, value_list ):
         return None
 
@@ -316,7 +322,50 @@ Delete from {table};
         file.write( file_trailer_str)
         file.close()        
 
+    def load_from_excel ( self, wb, sheet_name ):
+        sheet = wb.get_sheet_by_name ( sheet_name)
+        
+        data_table = []
+        max_col = len ( self.get_headers() )
+        for row in sheet.iter_rows( min_row = 4, max_row = sheet.max_row ):        
+            data_record = [''] * max_col
+            empty_row = True
+            for i in range( max_col ):
+                if row[i].value == None:
+                    data_record[i] = ''
+                else:
+                    data_record[i] = str(row[i].value)
+                    empty_row = False
+            if empty_row:
+                break
+            
+            logging.debug ( data_record )
+            elm = self.new_element(data_record)
+            self.set[elm.key] = elm
+
+    def save_to_excel ( self, wb, sheet_name ):
+        sheet = wb.get_sheet_by_name ( sheet_name)
+        max_col = len(self.get_headers())
+
+        #clear existing data
+        for row in sheet.iter_rows( min_row = 4, max_row = sheet.max_row ):
+            for i in range(max_col):
+                row[i].value = None
+
+        #write data rows
+        row_num=4
+        for key in self.set:
+            col_num = 1
+            for value in self.set[key].get_excel_values():
+                sheet.cell(row = row_num, column = col_num).value = value
+                col_num=col_num+1
+            row_num=row_num+1
+        
 class Ufmt_Value_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'VALUE_ID', 'VALUE_TYPE', 'VALUE_SUBTYPE', 'VALUE', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Value( value_list )
 
@@ -326,7 +375,6 @@ class Ufmt_Value_Set (Ufmt_Set):
 
     def get_table_name( self ):
         return "UFMT_VALUE"
-
 
 class Ufmt_Conversion_Set (Ufmt_Set):
     def new_element( self, value_list ):
@@ -463,7 +511,18 @@ def test():
     data_set = Ufmt_Data_Set()
     data_set.load_from_sql()
     data_set.export_to_sql()
+
+def test2():
+    file_name = 'UFMT_DATA'
+    file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    wb = openpyxl.load_workbook ( file_path)
+    value_set = Ufmt_Value_Set()
+    value_set.load_from_excel( wb, 'UFMT_VALUE' )
+    value_set.save_to_excel( wb, 'UFMT_VALUE')
+    file_name = 'UFMT_DATA_1'
+    file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    wb.save( file_path )
     
 if __name__ == '__main__':
-    test()
+    test2()
     
