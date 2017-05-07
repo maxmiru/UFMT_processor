@@ -47,27 +47,45 @@ class {}(object):
         print("        self.{0} = To_{1}({0})".format(elms[i], types[i]) , file = f)
     print("        self.key = ( {},)".format(', '.join(key_props)), file = f)
     print("", file = f)
+    
     print("    def __init__( self, prop_list):", file = f)
     for i in range(len(elms)):
         print("        self.{0} = To_{1}(prop_list[{2}])".format(elms[i], types[i], i), file = f )
     print("        self.key = ( {},)".format(', '.join(key_props)), file = f)
     print("", file = f)
-    print("    def __list__(self ):", file = f)
     
+    print("    def __list__(self ):", file = f)
     print("        return [{}]".format(', '.join([("From_" + types[i] + "(self." + elms[i] + ")") for i in range(len(elms))])), file = f)
     print("", file = f)
+
+    print("    def get_excel_values(self ):", file = f)
+    print("        return [{}]".format(', '.join([("self." + elm) for elm in elms])), file = f)
+    print("", file = f)
+    
+"""
+    def get_excel_values ( self ):
+        return [ self.value_id, self.value_type, self.value_subtype, self.value, self.description ]
+"""
     
 for ufmt_obj in ufmt_list:
     elms = ufmt_list[ufmt_obj][1]
+    
+    headers = ', '.join([ "'" + elm + "'" for elm in elms]).upper()
     print("""
 class {0}_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ {1} ]
+        
     def new_element( self, value_list ):
-        return {0}( value_list )""".format(ufmt_obj), file = f )
+        return {0}( value_list )""".format(ufmt_obj, headers), file = f )
+    
     cols = ', '.join(elms).upper()
     print('''
     def get_insert_sql_fmt( self ):
         insert_sql_fmt = "Insert into {table} ( {columns} ) Values ( {{values}} );"
         return insert_sql_fmt'''.format( table = ufmt_obj.upper(), columns = cols ), file = f)
+    
     print('''
     def get_table_name( self ):
         return "{}"'''.format( ufmt_obj.upper() ), file = f)

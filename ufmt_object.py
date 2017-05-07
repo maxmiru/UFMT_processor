@@ -48,6 +48,9 @@ class Ufmt_Value(object):
     def __list__(self ):
         return [From_Int(self.value_id), From_Int(self.value_type), From_Int(self.value_subtype), From_Str(self.value), From_Str(self.description)]
 
+    def get_excel_values(self ):
+        return [self.value_id, self.value_type, self.value_subtype, self.value, self.description]
+
 
 class Ufmt_Conversion(object):
 
@@ -65,6 +68,9 @@ class Ufmt_Conversion(object):
 
     def __list__(self ):
         return [From_Int(self.conv_key), From_Int(self.conv_type), From_Str(self.description)]
+
+    def get_excel_values(self ):
+        return [self.conv_key, self.conv_type, self.description]
 
 
 class Ufmt_Conv_Rule(object):
@@ -89,6 +95,9 @@ class Ufmt_Conv_Rule(object):
 
     def __list__(self ):
         return [From_Int(self.conv_key), From_Int(self.rule_num), From_Str(self.src_value), From_Str(self.dest_value), From_Int(self.next_key), From_Int(self.is_default)]
+
+    def get_excel_values(self ):
+        return [self.conv_key, self.rule_num, self.src_value, self.dest_value, self.next_key, self.is_default]
 
 
 class Ufmt_Condition(object):
@@ -122,6 +131,9 @@ class Ufmt_Condition(object):
     def __list__(self ):
         return [From_Int(self.cond_id), From_Str(self.operator), From_Int(self.value1), From_Int(self.conv1), From_Int(self.value2), From_Int(self.conv2), From_Int(self.cond1), From_Int(self.cond2), From_Int(self.f_strcmp), From_Str(self.description)]
 
+    def get_excel_values(self ):
+        return [self.cond_id, self.operator, self.value1, self.conv1, self.value2, self.conv2, self.cond1, self.cond2, self.f_strcmp, self.description]
+
 
 class Ufmt_Field_Format(object):
 
@@ -150,6 +162,9 @@ class Ufmt_Field_Format(object):
     def __list__(self ):
         return [From_Int(self.field_id), From_Int(self.length_type), From_Int(self.length), From_Int(self.data_type), From_Int(self.field_type), From_Str(self.psymbol), From_Str(self.pside), From_Str(self.description)]
 
+    def get_excel_values(self ):
+        return [self.field_id, self.length_type, self.length, self.data_type, self.field_type, self.psymbol, self.pside, self.description]
+
 
 class Ufmt_Format(object):
 
@@ -169,6 +184,9 @@ class Ufmt_Format(object):
 
     def __list__(self ):
         return [From_Int(self.format_id), From_Int(self.format_type), From_Str(self.description), From_Int(self.bitmap_type)]
+
+    def get_excel_values(self ):
+        return [self.format_id, self.format_type, self.description, self.bitmap_type]
 
 
 class Ufmt_Field(object):
@@ -193,6 +211,9 @@ class Ufmt_Field(object):
 
     def __list__(self ):
         return [From_Int(self.format_id), From_Int(self.field_no), From_Int(self.f_mac), From_Int(self.f_key), From_Int(self.f_mandatory), From_Str(self.description)]
+
+    def get_excel_values(self ):
+        return [self.format_id, self.field_no, self.f_mac, self.f_key, self.f_mandatory, self.description]
 
 
 class Ufmt_Build_Rule(object):
@@ -223,6 +244,9 @@ class Ufmt_Build_Rule(object):
 
     def __list__(self ):
         return [From_Int(self.format_id), From_Int(self.field_no), From_Int(self.priority), From_Int(self.field_id), From_Int(self.cond_id), From_Int(self.value_id), From_Int(self.conv_key), From_Int(self.f_check), From_Int(self.f_write)]
+
+    def get_excel_values(self ):
+        return [self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write]
 
 
 class Ufmt_Format_Select(object):
@@ -268,10 +292,17 @@ class Ufmt_Format_Select(object):
     def __list__(self ):
         return [From_Str(self.formatter), From_Int(self.rule_num), From_Str(self.route_type), From_Str(self.service_id_in), From_Str(self.trans_type_in), From_Str(self.msg_type_in), From_Str(self.reversal_in), From_Str(self.mti), From_Int(self.format_id), From_Str(self.trans_type_out), From_Str(self.msg_type_out), From_Str(self.reversal_out), From_Str(self.fIntran_in), From_Str(self.acq_inst_in), From_Str(self.iss_inst_in), From_Str(self.service_type_in)]
 
+    def get_excel_values(self ):
+        return [self.formatter, self.rule_num, self.route_type, self.service_id_in, self.trans_type_in, self.msg_type_in, self.reversal_in, self.mti, self.format_id, self.trans_type_out, self.msg_type_out, self.reversal_out, self.fIntran_in, self.acq_inst_in, self.iss_inst_in, self.service_type_in]
+
 class Ufmt_Set (object):
     def __init__ ( self ):
         self.set = {}
-        
+        self.headers = []
+
+    def get_headers ( self ):
+        return self.headers
+      
     def new_element( self, value_list ):
         return None
 
@@ -316,7 +347,50 @@ Delete from {table};
         file.write( file_trailer_str)
         file.close()        
 
+    def load_from_excel ( self, wb, sheet_name ):
+        sheet = wb.get_sheet_by_name ( sheet_name)
+        
+        data_table = []
+        max_col = len ( self.get_headers() )
+        for row in sheet.iter_rows( min_row = 4, max_row = sheet.max_row ):        
+            data_record = [''] * max_col
+            empty_row = True
+            for i in range( max_col ):
+                if row[i].value == None:
+                    data_record[i] = ''
+                else:
+                    data_record[i] = str(row[i].value)
+                    empty_row = False
+            if empty_row:
+                break
+            
+            logging.debug ( data_record )
+            elm = self.new_element(data_record)
+            self.set[elm.key] = elm
+
+    def save_to_excel ( self, wb, sheet_name ):
+        sheet = wb.get_sheet_by_name ( sheet_name)
+        max_col = len(self.get_headers())
+
+        #clear existing data
+        for row in sheet.iter_rows( min_row = 4, max_row = sheet.max_row ):
+            for i in range(max_col):
+                row[i].value = None
+
+        #write data rows
+        row_num=4
+        for key in self.set:
+            col_num = 1
+            for value in self.set[key].get_excel_values():
+                sheet.cell(row = row_num, column = col_num).value = value
+                col_num=col_num+1
+            row_num=row_num+1
+        
 class Ufmt_Value_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'VALUE_ID', 'VALUE_TYPE', 'VALUE_SUBTYPE', 'VALUE', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Value( value_list )
 
@@ -329,6 +403,10 @@ class Ufmt_Value_Set (Ufmt_Set):
 
 
 class Ufmt_Conversion_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'CONV_KEY', 'CONV_TYPE', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Conversion( value_list )
 
@@ -341,6 +419,10 @@ class Ufmt_Conversion_Set (Ufmt_Set):
 
 
 class Ufmt_Conv_Rule_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'CONV_KEY', 'RULE_NUM', 'SRC_VALUE', 'DEST_VALUE', 'NEXT_KEY', 'IS_DEFAULT' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Conv_Rule( value_list )
 
@@ -353,6 +435,10 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
 
 
 class Ufmt_Condition_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'COND_ID', 'OPERATOR', 'VALUE1', 'CONV1', 'VALUE2', 'CONV2', 'COND1', 'COND2', 'F_STRCMP', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Condition( value_list )
 
@@ -365,6 +451,10 @@ class Ufmt_Condition_Set (Ufmt_Set):
 
 
 class Ufmt_Field_Format_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'FIELD_ID', 'LENGTH_TYPE', 'LENGTH', 'DATA_TYPE', 'FIELD_TYPE', 'PSYMBOL', 'PSIDE', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Field_Format( value_list )
 
@@ -377,6 +467,10 @@ class Ufmt_Field_Format_Set (Ufmt_Set):
 
 
 class Ufmt_Format_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'FORMAT_ID', 'FORMAT_TYPE', 'DESCRIPTION', 'BITMAP_TYPE' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Format( value_list )
 
@@ -389,6 +483,10 @@ class Ufmt_Format_Set (Ufmt_Set):
 
 
 class Ufmt_Field_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'FORMAT_ID', 'FIELD_NO', 'F_MAC', 'F_KEY', 'F_MANDATORY', 'DESCRIPTION' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Field( value_list )
 
@@ -401,6 +499,10 @@ class Ufmt_Field_Set (Ufmt_Set):
 
 
 class Ufmt_Build_Rule_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'FORMAT_ID', 'FIELD_NO', 'PRIORITY', 'FIELD_ID', 'COND_ID', 'VALUE_ID', 'CONV_KEY', 'F_CHECK', 'F_WRITE' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Build_Rule( value_list )
 
@@ -413,6 +515,10 @@ class Ufmt_Build_Rule_Set (Ufmt_Set):
 
 
 class Ufmt_Format_Select_Set (Ufmt_Set):
+    def __init__ ( self ):
+        super().__init__()
+        self.headers = [ 'FORMATTER', 'RULE_NUM', 'ROUTE_TYPE', 'SERVICE_ID_IN', 'TRANS_TYPE_IN', 'MSG_TYPE_IN', 'REVERSAL_IN', 'MTI', 'FORMAT_ID', 'TRANS_TYPE_OUT', 'MSG_TYPE_OUT', 'REVERSAL_OUT', 'FINTRAN_IN', 'ACQ_INST_IN', 'ISS_INST_IN', 'SERVICE_TYPE_IN' ]
+        
     def new_element( self, value_list ):
         return Ufmt_Format_Select( value_list )
 
@@ -423,7 +529,7 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_FORMAT_SELECT"
 
-tables = ('UFMT_VALUE', 'UFMT_CONVERSION', 'UFMT_CONV_RULE', 'UFMT_CONDITION', 'UFMT_FIELD_FORMAT', 'UFMT_FORMAT', 'UFMT_FIELD', 'UFMT_BUILD_RULE', 'UFMT_FORMAT_SELECT' )
+#tables = ('UFMT_VALUE', 'UFMT_CONVERSION', 'UFMT_CONV_RULE', 'UFMT_CONDITION', 'UFMT_FIELD_FORMAT', 'UFMT_FORMAT', 'UFMT_FIELD', 'UFMT_BUILD_RULE', 'UFMT_FORMAT_SELECT' )
 
 class Ufmt_Data_Set (object):
     def __init__ ( self ):
@@ -458,12 +564,64 @@ class Ufmt_Data_Set (object):
         self.fields.export_to_sql('UFMT_FIELD_1')
         self.build_rules.export_to_sql('UFMT_BUILD_RULE_1')
         self.format_selects.export_to_sql('UFMT_FORMAT_SELECT_1')
+
+    def load_from_excel( self, file_name ):
+        file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+        wb = openpyxl.load_workbook ( file_path)
+        self.values.load_from_excel(wb, 'UFMT_VALUE')
+        self.conversions.load_from_excel(wb, 'UFMT_CONVERSION')
+        self.conv_rules.load_from_excel(wb, 'UFMT_CONV_RULE')
+        self.conditions.load_from_excel(wb, 'UFMT_CONDITION')
+        self.field_formats.load_from_excel(wb, 'UFMT_FIELD_FORMAT')
+        self.formats.load_from_excel(wb, 'UFMT_FORMAT')
+        self.fields.load_from_excel(wb, 'UFMT_FIELD')
+        self.build_rules.load_from_excel(wb, 'UFMT_BUILD_RULE')
+        self.format_selects.load_from_excel(wb, 'UFMT_FORMAT_SELECT')
+
+    def save_to_excel( self, file_name ):
+        file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+        wb = openpyxl.load_workbook ( file_path)
+        self.values.save_to_excel(wb, 'UFMT_VALUE')
+        self.conversions.save_to_excel(wb, 'UFMT_CONVERSION')
+        self.conv_rules.save_to_excel(wb, 'UFMT_CONV_RULE')
+        self.conditions.save_to_excel(wb, 'UFMT_CONDITION')
+        self.field_formats.save_to_excel(wb, 'UFMT_FIELD_FORMAT')
+        self.formats.save_to_excel(wb, 'UFMT_FORMAT')
+        self.fields.save_to_excel(wb, 'UFMT_FIELD')
+        self.build_rules.save_to_excel(wb, 'UFMT_BUILD_RULE')
+        self.format_selects.save_to_excel(wb, 'UFMT_FORMAT_SELECT')
+        wb.save( file_path )
         
 def test():
     data_set = Ufmt_Data_Set()
     data_set.load_from_sql()
     data_set.export_to_sql()
+
+def test2():
+    file_name = 'UFMT_DATA'
+    file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    wb = openpyxl.load_workbook ( file_path)
+    value_set = Ufmt_Value_Set()
+    value_set.load_from_excel( wb, 'UFMT_VALUE' )
+    value_set.save_to_excel( wb, 'UFMT_VALUE')
+    file_name = 'UFMT_DATA_1'
+    file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    wb.save( file_path )
+
+def test3():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel( 'UFMT_DATA' )
+    data_set.save_to_excel( 'UFMT_DATA_1' )
+
+def test4():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_sql()
+    data_set.save_to_excel('UFMT_DATA_2')
+    del data_set
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA_2')
+    data_set.export_to_sql()
     
 if __name__ == '__main__':
-    test()
+    test4()
     
