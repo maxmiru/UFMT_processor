@@ -306,8 +306,11 @@ class Ufmt_Set (object):
     def new_element( self, value_list ):
         return None
 
-    def load_from_sql ( self, file_name ):
-        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+    def load_from_sql ( self, file_name, dir_path = None ):
+        if dir_path is None:
+            file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+        else:
+            file_path = os.path.join( dir_path, file_name + '.sql' )
         file = open( file_path, 'r')
         po = re.compile( r'Insert\s+into\s+(\w+)\s*\((.*)\)\s*values\s*\((.*)\);', re.I)
         data_dict = {}
@@ -326,7 +329,7 @@ class Ufmt_Set (object):
             elm = self.new_element(rec)
             self.set[elm.key] = elm
 
-    def export_to_sql ( self, file_name ):
+    def export_to_sql ( self, file_name, dir_path = None ):
         file_header_str = """\
 Drop table {table}_BK;
 Create table {table}_BK as Select * from {table};
@@ -336,7 +339,10 @@ Delete from {table};
         file_trailer_str = "\nCOMMIT;\n"
         insert_sql_fmt = self.get_insert_sql_fmt() + '\n'
 
-        file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+        if dir_path is None:
+            file_path = os.path.join( 'Data', 'SQL', file_name + '.sql' )
+        else:
+            file_path = os.path.join( dir_path, file_name + '.sql' )
         file = open( file_path , 'w')
         file.write( file_header_str )
         for key in self.set:
@@ -543,30 +549,33 @@ class Ufmt_Data_Set (object):
         self.build_rules = Ufmt_Build_Rule_Set()
         self.format_selects = Ufmt_Format_Select_Set()
 
-    def load_from_sql( self ):
-        self.values.load_from_sql('UFMT_VALUE')
-        self.conversions.load_from_sql('UFMT_CONVERSION')
-        self.conv_rules.load_from_sql('UFMT_CONV_RULE')
-        self.conditions.load_from_sql('UFMT_CONDITION')
-        self.field_formats.load_from_sql('UFMT_FIELD_FORMAT')
-        self.formats.load_from_sql('UFMT_FORMAT')
-        self.fields.load_from_sql('UFMT_FIELD')
-        self.build_rules.load_from_sql('UFMT_BUILD_RULE')
-        self.format_selects.load_from_sql('UFMT_FORMAT_SELECT')
+    def load_from_sql( self, dir_path = None ):
+        self.values.load_from_sql('UFMT_VALUE', dir_path )
+        self.conversions.load_from_sql('UFMT_CONVERSION', dir_path )
+        self.conv_rules.load_from_sql('UFMT_CONV_RULE', dir_path )
+        self.conditions.load_from_sql('UFMT_CONDITION', dir_path )
+        self.field_formats.load_from_sql('UFMT_FIELD_FORMAT', dir_path )
+        self.formats.load_from_sql('UFMT_FORMAT', dir_path )
+        self.fields.load_from_sql('UFMT_FIELD', dir_path )
+        self.build_rules.load_from_sql('UFMT_BUILD_RULE', dir_path )
+        self.format_selects.load_from_sql('UFMT_FORMAT_SELECT', dir_path )
 
-    def export_to_sql( self ):
-        self.values.export_to_sql('UFMT_VALUE_1')
-        self.conversions.export_to_sql('UFMT_CONVERSION_1')
-        self.conv_rules.export_to_sql('UFMT_CONV_RULE_1')
-        self.conditions.export_to_sql('UFMT_CONDITION_1')
-        self.field_formats.export_to_sql('UFMT_FIELD_FORMAT_1')
-        self.formats.export_to_sql('UFMT_FORMAT_1')
-        self.fields.export_to_sql('UFMT_FIELD_1')
-        self.build_rules.export_to_sql('UFMT_BUILD_RULE_1')
-        self.format_selects.export_to_sql('UFMT_FORMAT_SELECT_1')
+    def export_to_sql( self, dir_path = None ):
+        self.values.export_to_sql('UFMT_VALUE', dir_path )
+        self.conversions.export_to_sql('UFMT_CONVERSION', dir_path )
+        self.conv_rules.export_to_sql('UFMT_CONV_RULE', dir_path )
+        self.conditions.export_to_sql('UFMT_CONDITION', dir_path )
+        self.field_formats.export_to_sql('UFMT_FIELD_FORMAT', dir_path )
+        self.formats.export_to_sql('UFMT_FORMAT', dir_path )
+        self.fields.export_to_sql('UFMT_FIELD', dir_path )
+        self.build_rules.export_to_sql('UFMT_BUILD_RULE', dir_path )
+        self.format_selects.export_to_sql('UFMT_FORMAT_SELECT', dir_path )
 
-    def load_from_excel( self, file_name ):
-        file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    def load_from_excel( self, file_name, dir_path = None ):
+        if dir_path is None:
+            file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+        else:
+            file_path = os.path.join( dir_path, file_name + '.xlsx' )
         wb = openpyxl.load_workbook ( file_path)
         self.values.load_from_excel(wb, 'UFMT_VALUE')
         self.conversions.load_from_excel(wb, 'UFMT_CONVERSION')
@@ -578,8 +587,11 @@ class Ufmt_Data_Set (object):
         self.build_rules.load_from_excel(wb, 'UFMT_BUILD_RULE')
         self.format_selects.load_from_excel(wb, 'UFMT_FORMAT_SELECT')
 
-    def save_to_excel( self, file_name ):
-        file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+    def save_to_excel( self, file_name, dir_path = None ):
+        if dir_path is None:
+            file_path = os.path.join( 'Data', 'Excel', file_name + '.xlsx' )
+        else:
+            file_path = os.path.join( dir_path, file_name + '.xlsx' )
         wb = openpyxl.load_workbook ( file_path)
         self.values.save_to_excel(wb, 'UFMT_VALUE')
         self.conversions.save_to_excel(wb, 'UFMT_CONVERSION')
@@ -621,7 +633,19 @@ def test4():
     data_set = Ufmt_Data_Set()
     data_set.load_from_excel('UFMT_DATA_2')
     data_set.export_to_sql()
+
+def test5():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA', '.')
+    data_set.export_to_sql( '.' )
+
+def test6():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_sql('.')
+    data_set.save_to_excel('UFMT_DATA', '.')
     
 if __name__ == '__main__':
-    test4()
+    #test6()
+    print('Warning! This is a module, please don\'t execute it directly!')
+    
     
