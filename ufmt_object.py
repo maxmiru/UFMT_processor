@@ -248,7 +248,14 @@ class Ufmt_Build_Rule(object):
     def get_excel_values(self ):
         return [self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write]
 
-
+    def link( self, fields, field_formats, conds, convs, values ):
+        self.field = fields.get( ( self.format_id, self.field_no, ) )
+        self.field_format = field_formats.get ( ( self.field_id, ) )
+        self.cond = conds.get( (self.cond_id, ) )
+        self.conv = convs.get( (self.conv_key, ) )
+        self.value = values.get( (self.value_id, ) )
+        
+        
 class Ufmt_Format_Select(object):
 
     def __init__( self, formatter, rule_num, route_type, service_id_in, trans_type_in, msg_type_in, reversal_in, mti, format_id, trans_type_out, msg_type_out, reversal_out, fIntran_in, acq_inst_in, iss_inst_in, service_type_in):
@@ -391,7 +398,10 @@ Delete from {table};
                 sheet.cell(row = row_num, column = col_num).value = value
                 col_num=col_num+1
             row_num=row_num+1
-        
+
+    def get( self, key ):
+        return self.set.get(key)
+    
 class Ufmt_Value_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -519,6 +529,9 @@ class Ufmt_Build_Rule_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_BUILD_RULE"
 
+    def link( self, fields, field_formats, conds, convs, values ):
+        for elm in self.set.values():
+            elm.link( fields, field_formats, conds, convs, values )
 
 class Ufmt_Format_Select_Set (Ufmt_Set):
     def __init__ ( self ):
@@ -643,9 +656,21 @@ def test6():
     data_set = Ufmt_Data_Set()
     data_set.load_from_sql('.')
     data_set.save_to_excel('UFMT_DATA', '.')
+
+def test7():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_sql()
+    data_set.build_rules.link( data_set.fields, data_set.field_formats, data_set.conditions, data_set.conversions, data_set.values )
+    rule = data_set.build_rules.get( (4, 3, 3) )
+    #rule.link( data_set.fields, data_set.field_formats, data_set.conditions, data_set.conversions, data_set.values )
+    print(rule.value.__list__() )
+    print(rule.field.__list__() )
+    print(rule.field_format.__list__())
+    print(rule.cond.__list__())
+    print(rule.conv.__list__())
     
 if __name__ == '__main__':
-    #test6()
+    test7()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
