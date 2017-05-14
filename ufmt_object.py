@@ -99,18 +99,20 @@ class Ufmt_Conv_Rule(object):
     def get_excel_values(self ):
         return [self.conv_key, self.rule_num, self.src_value, self.dest_value, self.next_key, self.is_default]
 
-
+    def link ( self, convs ):
+        self.conv = convs.get( ( self.conv_key, ) )
+        
 class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
         self.cond_id = To_Int(cond_id)
         self.operator = To_Str(operator)
-        self.value1 = To_Int(value1)
-        self.conv1 = To_Int(conv1)
-        self.value2 = To_Int(value2)
-        self.conv2 = To_Int(conv2)
-        self.cond1 = To_Int(cond1)
-        self.cond2 = To_Int(cond2)
+        self.value_id1 = To_Int(value1)
+        self.conv_key1 = To_Int(conv1)
+        self.value_id2 = To_Int(value2)
+        self.conv_key2 = To_Int(conv2)
+        self.cond_id1 = To_Int(cond1)
+        self.cond_id2 = To_Int(cond2)
         self.f_strcmp = To_Int(f_strcmp)
         self.description = To_Str(description)
         self.key = ( self.cond_id,)
@@ -118,23 +120,30 @@ class Ufmt_Condition(object):
     def __init__( self, prop_list):
         self.cond_id = To_Int(prop_list[0])
         self.operator = To_Str(prop_list[1])
-        self.value1 = To_Int(prop_list[2])
-        self.conv1 = To_Int(prop_list[3])
-        self.value2 = To_Int(prop_list[4])
-        self.conv2 = To_Int(prop_list[5])
-        self.cond1 = To_Int(prop_list[6])
-        self.cond2 = To_Int(prop_list[7])
+        self.value_id1 = To_Int(prop_list[2])
+        self.conv_key1 = To_Int(prop_list[3])
+        self.value_id2 = To_Int(prop_list[4])
+        self.conv_key2 = To_Int(prop_list[5])
+        self.cond_id1 = To_Int(prop_list[6])
+        self.cond_id2 = To_Int(prop_list[7])
         self.f_strcmp = To_Int(prop_list[8])
         self.description = To_Str(prop_list[9])
         self.key = ( self.cond_id,)
 
     def __list__(self ):
-        return [From_Int(self.cond_id), From_Str(self.operator), From_Int(self.value1), From_Int(self.conv1), From_Int(self.value2), From_Int(self.conv2), From_Int(self.cond1), From_Int(self.cond2), From_Int(self.f_strcmp), From_Str(self.description)]
+        return [From_Int(self.cond_id), From_Str(self.operator), From_Int(self.value_id1), From_Int(self.conv_key1), From_Int(self.value_id2), From_Int(self.conv_key2), From_Int(self.cond_id1), From_Int(self.cond_id2), From_Int(self.f_strcmp), From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.cond_id, self.operator, self.value1, self.conv1, self.value2, self.conv2, self.cond1, self.cond2, self.f_strcmp, self.description]
+        return [self.cond_id, self.operator, self.value_id1, self.conv_key1, self.value_id2, self.conv_key2, self.cond_id1, self.cond_id2, self.f_strcmp, self.description]
 
-
+    def link ( self, values, convs, conds ):
+        self.value1 = values.get( ( self.value_id1, ) )
+        self.value2 = values.get( ( self.value_id2, ) )
+        self.conv1 = convs.get( ( self.conv_key1, ) )
+        self.conv2 = convs.get( ( self.conv_key2, ) )
+        self.cond1 = conds.get( ( self.cond_id1, ) )
+        self.cond2 = conds.get( ( self.cond_id2, ) )
+        
 class Ufmt_Field_Format(object):
 
     def __init__( self, field_id, length_type, length, data_type, field_type, psymbol, pside, description):
@@ -215,6 +224,8 @@ class Ufmt_Field(object):
     def get_excel_values(self ):
         return [self.format_id, self.field_no, self.f_mac, self.f_key, self.f_mandatory, self.description]
 
+    def link ( self, formats ):
+        self.format = formats.get( ( self.format_id, ) )
 
 class Ufmt_Build_Rule(object):
 
@@ -302,6 +313,9 @@ class Ufmt_Format_Select(object):
     def get_excel_values(self ):
         return [self.formatter, self.rule_num, self.route_type, self.service_id_in, self.trans_type_in, self.msg_type_in, self.reversal_in, self.mti, self.format_id, self.trans_type_out, self.msg_type_out, self.reversal_out, self.fIntran_in, self.acq_inst_in, self.iss_inst_in, self.service_type_in]
 
+    def link ( self, formats ):
+        self.format = formats.get( ( self.format_id, ) )
+        
 class Ufmt_Set (object):
     def __init__ ( self ):
         self.set = {}
@@ -449,6 +463,9 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_CONV_RULE"
 
+    def link ( self, convs ):
+        for elm in self.set.values():
+            elm.link ( convs )
 
 class Ufmt_Condition_Set (Ufmt_Set):
     def __init__ ( self ):
@@ -465,7 +482,10 @@ class Ufmt_Condition_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_CONDITION"
 
-
+    def link ( self, values, convs, conds ):
+        for elm in self.set.values():
+            elm.link( values, convs, conds )
+            
 class Ufmt_Field_Format_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -513,6 +533,9 @@ class Ufmt_Field_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_FIELD"
 
+    def link ( self, formats ):
+        for elm in self.set.values():
+            elm.link( formats )
 
 class Ufmt_Build_Rule_Set (Ufmt_Set):
     def __init__ ( self ):
@@ -548,6 +571,10 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_FORMAT_SELECT"
 
+    def link ( self, formats ):
+        for elm in self.set.values():
+            elm.link( formats )
+        
 #tables = ('UFMT_VALUE', 'UFMT_CONVERSION', 'UFMT_CONV_RULE', 'UFMT_CONDITION', 'UFMT_FIELD_FORMAT', 'UFMT_FORMAT', 'UFMT_FIELD', 'UFMT_BUILD_RULE', 'UFMT_FORMAT_SELECT' )
 
 class Ufmt_Data_Set (object):
@@ -616,6 +643,13 @@ class Ufmt_Data_Set (object):
         self.build_rules.save_to_excel(wb, 'UFMT_BUILD_RULE')
         self.format_selects.save_to_excel(wb, 'UFMT_FORMAT_SELECT')
         wb.save( file_path )
+
+    def link( self ):
+        self.conv_rules.link( self.conversions )
+        self.conditions.link( self.values, self.conversions, self.conditions )
+        self.fields.link( self.formats )
+        self.build_rules.link( self.fields, self.field_formats, self.conditions, self.conversions, self.values ) 
+        self.format_selects.link ( self.formats )
         
 def test():
     data_set = Ufmt_Data_Set()
@@ -668,9 +702,28 @@ def test7():
     print(rule.field_format.__list__())
     print(rule.cond.__list__())
     print(rule.conv.__list__())
+
+def test8():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_sql()
+    data_set.link()
+    cond = data_set.conditions.get( (10, ))
+    print( cond.__list__())
+    if cond.value1 is not None:
+        print( cond.value1.__list__())  
+    if cond.value2 is not None:
+        print( cond.value2.__list__())  
+    if cond.conv1 is not None:
+        print( cond.conv1.__list__())  
+    if cond.conv2 is not None:
+        print( cond.conv2.__list__())  
+    if cond.cond1 is not None:
+        print( cond.cond1.__list__())
+    if cond.cond2 is not None:
+        print( cond.cond2.__list__())
     
 if __name__ == '__main__':
-    test7()
+    test8()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
