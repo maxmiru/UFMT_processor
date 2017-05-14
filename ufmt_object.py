@@ -83,36 +83,36 @@ class Ufmt_Value(object):
 
     def __init__( self, value_id, value_type, value_subtype, value, description):
         self.value_id = To_Int(value_id)
-        self.value_type = To_Int(value_type)
-        self.value_subtype = To_Int(value_subtype)
+        self.value_type = Value_Type(To_Int(value_type))
+        self.value_subtype = Value_Subtype(To_Int(value_subtype))
         self.value = To_Str(value)
         self.description = To_Str(description)
         self.key = ( self.value_id,)
 
     def __init__( self, prop_list):
         self.value_id = To_Int(prop_list[0])
-        self.value_type = To_Int(prop_list[1])
-        self.value_subtype = To_Int(prop_list[2])
+        self.value_type = Value_Type(To_Int(prop_list[1]))
+        self.value_subtype = Value_Subtype(To_Int(prop_list[2]))
         self.value = To_Str(prop_list[3])
         self.description = To_Str(prop_list[4])
         self.key = ( self.value_id,)
 
     def __list__(self ):
-        return [From_Int(self.value_id), From_Int(self.value_type), From_Int(self.value_subtype), From_Str(self.value), From_Str(self.description)]
+        return [From_Int(self.value_id), From_Int(self.value_type.value), From_Int(self.value_subtype.value), From_Str(self.value), From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.value_id, self.value_type, self.value_subtype, self.value, self.description]
+        return [self.value_id, self.value_type.value, self.value_subtype.value, self.value, self.description]
 
     def __str__( self ):
         s = 'Value #{}: type {}, subtype {}, desc "{}", value "{}"'
-        s = s.format( self.value_id, self.value_type, self.value_subtype, self.description, self.value )
+        s = s.format( self.value_id, self.value_type.name, self.value_subtype.name, self.description, self.value )
         return s
     
 class Ufmt_Conversion(object):
 
     def __init__( self, conv_key, conv_type, description):
         self.conv_key = To_Int(conv_key)
-        self.conv_type = To_Int(conv_type)
+        self.conv_type = Conv_Type(To_Int(conv_type))
         self.description = To_Str(description)
         self.key = ( self.conv_key,)
 
@@ -120,21 +120,21 @@ class Ufmt_Conversion(object):
         
     def __init__( self, prop_list):
         self.conv_key = To_Int(prop_list[0])
-        self.conv_type = To_Int(prop_list[1])
+        self.conv_type = Conv_Type(To_Int(prop_list[1]))
         self.description = To_Str(prop_list[2])
         self.key = ( self.conv_key,)
 
         self.conv_rules = dict()
         
     def __list__(self ):
-        return [From_Int(self.conv_key), From_Int(self.conv_type), From_Str(self.description)]
+        return [From_Int(self.conv_key), From_Int(self.conv_type.value), From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.conv_key, self.conv_type, self.description]
+        return [self.conv_key, self.conv_type.value, self.description]
 
     def __str__( self ):
         s = 'Conversion #{}: type {}, desc "{}"'
-        s = s.format( self.conv_key, self.conv_type, self.description )
+        s = s.format( self.conv_key, self.conv_type.name, self.description )
         return s
 
     def add_to_conv_rules ( self, conv_rule ):
