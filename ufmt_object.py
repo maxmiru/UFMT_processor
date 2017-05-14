@@ -64,12 +64,16 @@ class Ufmt_Conversion(object):
         self.description = To_Str(description)
         self.key = ( self.conv_key,)
 
+        self.conv_rules = dict()
+        
     def __init__( self, prop_list):
         self.conv_key = To_Int(prop_list[0])
         self.conv_type = To_Int(prop_list[1])
         self.description = To_Str(prop_list[2])
         self.key = ( self.conv_key,)
 
+        self.conv_rules = dict()
+        
     def __list__(self ):
         return [From_Int(self.conv_key), From_Int(self.conv_type), From_Str(self.description)]
 
@@ -80,7 +84,16 @@ class Ufmt_Conversion(object):
         s = 'Conversion #{}: type {}, desc "{}"'
         s = s.format( self.conv_key, self.conv_type, self.description )
         return s
-    
+
+    def add_to_conv_rules ( self, conv_rule ):
+        if conv_rule.conv_key == self.conv_key:
+            self.conv_rules[ conv_rule.rule_num ] = conv_rule
+
+    def show_details ( self ):
+        print ( self )
+        for conv_rule in self.conv_rules.values():
+            print ( '\t%s' % str ( conv_rule ))
+            
 class Ufmt_Conv_Rule(object):
 
     def __init__( self, conv_key, rule_num, src_value, dest_value, next_key, is_default):
@@ -240,6 +253,8 @@ class Ufmt_Format(object):
         self.bitmap_type = To_Int(bitmap_type)
         self.key = ( self.format_id,)
 
+        self.fields = dict()
+
     def __init__( self, prop_list):
         self.format_id = To_Int(prop_list[0])
         self.format_type = To_Int(prop_list[1])
@@ -247,6 +262,8 @@ class Ufmt_Format(object):
         self.bitmap_type = To_Int(prop_list[3])
         self.key = ( self.format_id,)
 
+        self.fields = dict()
+        
     def __list__(self ):
         return [From_Int(self.format_id), From_Int(self.format_type), From_Str(self.description), From_Int(self.bitmap_type)]
 
@@ -257,7 +274,25 @@ class Ufmt_Format(object):
         s = 'Format #{}: type {}, bitmap type {}, desc "{}"'
         s = s.format( self.format_id, self.format_type, self.bitmap_type, self.description )
         return s
-    
+
+    def add_to_fields ( self, field ):
+        if field.format_id == self.format_id:
+            self.fields[ field.field_no ] = field
+
+    def show_details ( self ):
+        print ( self )
+        for field in self.fields.values():
+            print ( '\t%s' % str ( field ) )
+            for rule in field.build_rules.values():
+                s = '\t\t%s' % str ( rule )
+                s += '\n\t\t\t%s' % str ( rule.field_format )
+                if rule.cond is not None:
+                    s += '\n\t\t\t%s' % str ( rule.cond )
+                s += '\n\t\t\t%s' % str ( rule.value )
+                if rule.conv is not None:
+                    s += '\n\t\t\t%s' % str ( rule.conv )
+                print ( s )
+                
 class Ufmt_Field(object):
 
     def __init__( self, format_id, field_no, f_mac, f_key, f_mandatory, description):
@@ -269,6 +304,8 @@ class Ufmt_Field(object):
         self.description = To_Str(description)
         self.key = ( self.format_id, self.field_no,)
 
+        self.build_rules = dict()
+        
     def __init__( self, prop_list):
         self.format_id = To_Int(prop_list[0])
         self.field_no = To_Int(prop_list[1])
@@ -278,6 +315,8 @@ class Ufmt_Field(object):
         self.description = To_Str(prop_list[5])
         self.key = ( self.format_id, self.field_no,)
 
+        self.build_rules = dict()
+        
     def __list__(self ):
         return [From_Int(self.format_id), From_Int(self.field_no), From_Int(self.f_mac), From_Int(self.f_key), From_Int(self.f_mandatory), From_Str(self.description)]
 
@@ -303,7 +342,24 @@ class Ufmt_Field(object):
         s = 'Format #{}, field #{}: {}, {}, {}, desc "{}"'
         s = s.format( self.format_id, self.field_no, mac, key, mand, self.description )
         return s
-    
+
+    def add_to_build_rules ( self, build_rule ):
+        if ( build_rule.format_id, build_rule.field_no ) == self.key:
+            self.build_rules[ build_rule.priority ] = build_rule
+
+    def show_details ( self ):
+        print ( self )
+        print ( self.format )
+        for rule in self.build_rules.values():
+            s = '\t%s' % str ( rule )
+            s += '\n\t\t%s' % str ( rule.field_format )
+            if rule.cond is not None:
+                s += '\n\t\t%s' % str ( rule.cond )
+            s += '\n\t\t%s' % str ( rule.value )
+            if rule.conv is not None:
+                s += '\n\t\t%s' % str ( rule.conv )
+            print ( s )
+            
 class Ufmt_Build_Rule(object):
 
     def __init__( self, format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write):
@@ -347,6 +403,17 @@ class Ufmt_Build_Rule(object):
         s = 'Format #{}, field #{}, rule #{}: field format {}, cond {}, value {}, conv {}, check {}, write {}'
         s = s.format( self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write )
         return s
+
+    def show_details ( self ):
+        print ( self )
+        print ( self.field.format )
+        print ( self.field )
+        print ( self.field_format )
+        if self.cond is not None:
+            print ( self.cond )
+        print ( self.value )
+        if self.conv is not None:
+            print ( self.conv )
         
 class Ufmt_Format_Select(object):
 
@@ -564,6 +631,9 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
         for elm in self.set.values():
             elm.link ( convs )
 
+            conv = convs.get ( ( elm.conv_key, ) )
+            conv.add_to_conv_rules ( elm )
+            
 class Ufmt_Condition_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -634,6 +704,9 @@ class Ufmt_Field_Set (Ufmt_Set):
         for elm in self.set.values():
             elm.link( formats )
 
+            _format = formats.get( (elm.format_id, ) )
+            _format.add_to_fields ( elm )
+            
 class Ufmt_Build_Rule_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -652,7 +725,10 @@ class Ufmt_Build_Rule_Set (Ufmt_Set):
     def link( self, fields, field_formats, conds, convs, values ):
         for elm in self.set.values():
             elm.link( fields, field_formats, conds, convs, values )
-
+            
+            field = fields.get( ( elm.format_id, elm.field_no ) )
+            field.add_to_build_rules ( elm )
+            
 class Ufmt_Format_Select_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -822,7 +898,15 @@ def test8():
 def test9():
     data_set = Ufmt_Data_Set()
     data_set.load_from_excel('UFMT_DATA')
-    print( data_set.format_selects)
+    data_set.link()
+    rule = data_set.build_rules.get( (4, 3, 3) )
+    rule.show_details()
+    field = data_set.fields.get ( (4, 3 ))
+    field.show_details()
+    fmt = data_set.formats.get ( (4, ))
+    fmt.show_details()
+    conv = data_set.conversions.get( (20, ))
+    conv.show_details()
     
 if __name__ == '__main__':
     test9()
