@@ -79,6 +79,50 @@ def From_Int ( integer ):
     return str( integer )
 #Convert functions - end
 
+class Complex_Value(object):
+    def __init__ ( self, value, ufmt_values, ufmt_convs ):
+        if value[0].isdigit():
+            self.separator = ''
+            join_str = value
+        else:
+            self.separator = value[0]
+            join_str = value[1:]
+        val_conv_pairs = join_str.split(',')
+        self.values = []
+        self.convs = []
+        for pair in val_conv_pairs:
+            tokens = pair.split(':')
+            value_id = int(tokens[0])
+            if len(tokens) > 1:
+                conv_key = int(tokens[1])
+            else:
+                conv_key = None
+            u_value = ufmt_values.get( (value_id, ))
+            u_conv = ufmt_convs.get( (conv_key, ))
+            self.values.append( u_value )
+            self.convs.append( u_conv )
+            #print( 'value_id = {}, conv_key = {}'.format(value_id, conv_key ) )
+            #print( u_value )
+            #print( u_conv )
+            
+    def __str__ ( self ):
+        pairs = []
+        for i in range( len ( self.values )):
+            s = str(self.values[i].value_id)
+            if self.convs[i] is not None:
+                s += ':' + str(self.convs[i].conv_key)
+            pairs.append(s)
+        s = self.separator + ','.join( pairs )
+        return s
+
+    def show_details ( self, indent = 0 ):
+        tabs = '\t'*indent
+        print( '{}Separator="{}"'.format( tabs, self.separator ) )
+        for i in range( len ( self.values ) ):
+            print( '{}{}'.format( tabs, self.values[i] ))
+            if self.convs[i] is not None:
+                print( '{}{}'.format(tabs, self.convs[i] ) )
+        
 class Ufmt_Value(object):
 
     def __init__( self, value_id, value_type, value_subtype, value, description):
@@ -98,16 +142,44 @@ class Ufmt_Value(object):
         self.key = ( self.value_id,)
 
     def __list__(self ):
-        return [From_Int(self.value_id), From_Int(self.value_type.value), From_Int(self.value_subtype.value), From_Str(self.value), From_Str(self.description)]
+        return [From_Int(self.value_id), From_Int(self.value_type.value), From_Int(self.value_subtype.value), From_Str(self.get_raw_value()), From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.value_id, self.value_type.value, self.value_subtype.value, self.value, self.description]
+        return [self.value_id, self.value_type.value, self.value_subtype.value, self.get_raw_value(), self.description]
 
     def __str__( self ):
         s = 'Value #{}: type {}, subtype {}, desc "{}", value "{}"'
-        s = s.format( self.value_id, self.value_type.name, self.value_subtype.name, self.description, self.value )
+        s = s.format( self.value_id, self.value_type.name, self.value_subtype.name, self.description, self.get_raw_value() )
         return s
+
+    def validate( self, ufmt_data_set ):
+        if self.value_type is Value_Type.COMPLEX:
+            self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
+        elif self.value_type is Value_Type.FMT:
+            self.value = ufmt_data_set.formats.get( ( int(self.value), ))
+        elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
+            self.value = int( self.value )
+        elif self.value_type is Value_Type.CONST:
+            if self.value_subtype in (Value_Subtype.INT, Value_Subtype.LONG_LONG ):
+                self.value = int( self.value )
+            elif self.value_subtype in ( Value_Subtype.FLOAT, Value_Subtype.FLOAT_IP ):
+                self.value = float( self.value )
+            
+    def get_raw_value( self ):
+        if self.value is None:
+            return ''
+        if self.value_type is Value_Type.FMT and isinstance( self.value, Ufmt_Format ):
+            return str(self.value.format_id)
+        return str(self.value)
     
+    def show_details( self, indent = 0 ):
+        tabs = '\t'*indent
+        print ( '{}{}'.format( tabs, self ) )
+        if self.value_type is Value_Type.COMPLEX and isinstance( self.value, Complex_Value ) :
+            self.value.show_details( indent + 1 )
+        elif self.value_type is Value_Type.FMT and isinstance( self.value, Ufmt_Format ):
+            self.value.show_details( indent + 1 )
+            
 class Ufmt_Conversion(object):
 
     def __init__( self, conv_key, conv_type, description):
@@ -141,10 +213,12 @@ class Ufmt_Conversion(object):
         if conv_rule.conv_key == self.conv_key:
             self.conv_rules[ conv_rule.rule_num ] = conv_rule
 
-    def show_details ( self ):
-        print ( self )
+    def show_details ( self, indent = 0 ):
+        tabs = '\t' * indent
+        print ( '{}{}'.format( tabs, self ) )
+        tabs += '\t'
         for conv_rule in self.conv_rules.values():
-            print ( '\t%s' % str ( conv_rule ))
+            print ( '{}{}'.format( tabs, conv_rule ) )
             
 class Ufmt_Conv_Rule(object):
 
@@ -331,18 +405,22 @@ class Ufmt_Format(object):
         if field.format_id == self.format_id:
             self.fields[ field.field_no ] = field
 
-    def show_details ( self ):
-        print ( self )
+    def show_details ( self, indent = 0 ):
+        tabs = '\t' * indent
+        print ( '{}{}'.format( tabs, self ) )
+        tabs1 = '\t' * (indent + 1)
+        tabs2 = '\t' * (indent + 2)
+        tabs3 = '\t' * (indent + 3)
         for field in self.fields.values():
-            print ( '\t%s' % str ( field ) )
+            print ( '{}{}'.format ( tabs1, field ) )
             for rule in field.build_rules.values():
-                s = '\t\t%s' % str ( rule )
-                s += '\n\t\t\t%s' % str ( rule.field_format )
+                s = '{}{}'.format ( tabs2, rule )
+                s += '\n{}{}'.format ( tabs3, rule.field_format )
                 if rule.cond is not None:
-                    s += '\n\t\t\t%s' % str ( rule.cond )
-                s += '\n\t\t\t%s' % str ( rule.value )
+                    s += '\n{}{}'.format ( tabs3, rule.cond )
+                s += '\n{}{}'.format ( tabs3, rule.value )
                 if rule.conv is not None:
-                    s += '\n\t\t\t%s' % str ( rule.conv )
+                    s += '\n{}{}'.format ( tabs3, rule.conv )
                 print ( s )
                 
 class Ufmt_Field(object):
@@ -399,17 +477,20 @@ class Ufmt_Field(object):
         if ( build_rule.format_id, build_rule.field_no ) == self.key:
             self.build_rules[ build_rule.priority ] = build_rule
 
-    def show_details ( self ):
-        print ( self )
-        print ( self.format )
+    def show_details ( self, indent = 0 ):
+        tabs = '\t' * indent
+        print ( '{}{}'.format( tabs, self ) )
+        print ( '{}{}'.format( tabs, self.format ) )
+        tabs1 = '\t' * ( indent + 1 )
+        tabs2 = '\t' * ( indent + 2 )
         for rule in self.build_rules.values():
-            s = '\t%s' % str ( rule )
-            s += '\n\t\t%s' % str ( rule.field_format )
+            s = '{}{}'.format( tabs1, rule )
+            s += '\n{}{}' .format( tabs2, rule.field_format )
             if rule.cond is not None:
-                s += '\n\t\t%s' % str ( rule.cond )
-            s += '\n\t\t%s' % str ( rule.value )
+                s += '\n{}{}'.format( tabs2, rule.cond )
+            s += '\n{}{}'.format( tabs2, rule.value )
             if rule.conv is not None:
-                s += '\n\t\t%s' % str ( rule.conv )
+                s += '\n{}{}'.format( tabs2, rule.conv )
             print ( s )
             
 class Ufmt_Build_Rule(object):
@@ -456,16 +537,17 @@ class Ufmt_Build_Rule(object):
         s = s.format( self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write )
         return s
 
-    def show_details ( self ):
-        print ( self )
-        print ( self.field.format )
-        print ( self.field )
-        print ( self.field_format )
+    def show_details ( self, indent = 0 ):
+        tabs = '\t' * indent
+        print ( '{}{}'.format( tabs, self) )
+        print ( '{}{}'.format( tabs, self.field.format ) )
+        print ( '{}{}'.format( tabs, self.field ) )
+        print ( '{}{}'.format( tabs, self.field_format ) )
         if self.cond is not None:
-            print ( self.cond )
-        print ( self.value )
+            print ( '{}{}'.format( tabs, self.cond ) )
+        print ( '{}{}'.format( tabs, self.value ) )
         if self.conv is not None:
-            print ( self.conv )
+            print ( '{}{}'.format( tabs, self.conv ) )
         
 class Ufmt_Format_Select(object):
 
@@ -647,7 +729,10 @@ class Ufmt_Value_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_VALUE"
 
-
+    def validate( self, ufmt_data_set ):
+        for elm in self.set.values():
+            elm.validate ( ufmt_data_set )
+            
 class Ufmt_Conversion_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -874,6 +959,7 @@ class Ufmt_Data_Set (object):
         self.fields.link( self.formats )
         self.build_rules.link( self.fields, self.field_formats, self.conditions, self.conversions, self.values ) 
         self.format_selects.link ( self.formats )
+        self.values.validate ( self )
         
 def test():
     data_set = Ufmt_Data_Set()
@@ -958,9 +1044,19 @@ def test9():
     fmt.show_details()
     conv = data_set.conversions.get( (20, ))
     conv.show_details()
+
+def test10():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    rule = data_set.build_rules.get( (4, 3, 3) )
+    rule.show_details()
+    data_set.values.get((93,)).show_details()
+    data_set.values.get((289,)).show_details()
+    data_set.export_to_sql()
     
 if __name__ == '__main__':
-    test9()
+    test10()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
