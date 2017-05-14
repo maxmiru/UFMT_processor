@@ -4,7 +4,59 @@ This module define classes that are used by ufmt_data_processor
 '''
 
 import os, openpyxl, logging, sys, re, csv
+from enum import IntEnum 
 
+#enum constants - start
+class Value_Type(IntEnum):
+    CONST = 0
+    UMF = 1
+    PMT = 2
+    COMPLEX = 3
+    FMT = 4
+    LOCAL = 5
+    ITERATOR = 6
+    MONEYFLD = 7
+class Value_Subtype(IntEnum):
+    STR = 0
+    INT = 1
+    UINT = 2
+    FLOAT = 3
+    FLOAT_IP = 4
+    LONG_LONG = 5
+    BINARY = 6
+class Conv_Type(IntEnum):
+    REPLACE = 0
+    DATEFMT = 1
+    TEMPLATE = 2
+    EXPFMT = 3
+    ARITHMETIC = 4
+    FUNCTION = 5
+class Field_Length_Type(IntEnum):
+    NO = 0
+    LLA = 1
+    LLLA = 2
+    LLB = 3
+    LLLB = 4
+    LLLLA = 5
+    LLLLB = 6
+    LLH = 7
+    LLLH = 8
+    LH = 9
+class Field_Data_Type(IntEnum):
+    ASCII = 0
+    BYTE = 1
+    BCD = 2
+    EBCDIC = 3
+class Format_Type(IntEnum):
+    ISO8583_87= 0
+    TLV= 1
+    COMPLEX= 2
+    ISO8583_03= 3
+class Bitmap_Type(IntEnum):
+    HEX = 0
+    ASCII = 1
+#enum constants - end
+    
 #Convert functions - start
 def To_Int( ext_string ):
     if not ext_string.isdecimal():
@@ -748,7 +800,6 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
         for elm in self.set.values():
             elm.link( formats )
         
-#tables = ('UFMT_VALUE', 'UFMT_CONVERSION', 'UFMT_CONV_RULE', 'UFMT_CONDITION', 'UFMT_FIELD_FORMAT', 'UFMT_FORMAT', 'UFMT_FIELD', 'UFMT_BUILD_RULE', 'UFMT_FORMAT_SELECT' )
 
 class Ufmt_Data_Set (object):
     def __init__ ( self ):
