@@ -51,7 +51,11 @@ class Ufmt_Value(object):
     def get_excel_values(self ):
         return [self.value_id, self.value_type, self.value_subtype, self.value, self.description]
 
-
+    def __str__( self ):
+        s = 'Value #{}: type {}, subtype {}, desc "{}", value "{}"'
+        s = s.format( self.value_id, self.value_type, self.value_subtype, self.description, self.value )
+        return s
+    
 class Ufmt_Conversion(object):
 
     def __init__( self, conv_key, conv_type, description):
@@ -72,7 +76,11 @@ class Ufmt_Conversion(object):
     def get_excel_values(self ):
         return [self.conv_key, self.conv_type, self.description]
 
-
+    def __str__( self ):
+        s = 'Conversion #{}: type {}, desc "{}"'
+        s = s.format( self.conv_key, self.conv_type, self.description )
+        return s
+    
 class Ufmt_Conv_Rule(object):
 
     def __init__( self, conv_key, rule_num, src_value, dest_value, next_key, is_default):
@@ -101,7 +109,18 @@ class Ufmt_Conv_Rule(object):
 
     def link ( self, convs ):
         self.conv = convs.get( ( self.conv_key, ) )
+        if self.next_key is not None:
+            self.next_conv = convs.get( ( self.next_key,) )
         
+    def __str__( self ):
+        s = 'Conversion #{}, rule#{}: src "{}", dest "{}"'
+        s = s.format( self.conv_key, self.rule_num, self.src_value, self.dest_value)
+        if self.is_default == 1:
+            s = s + ', default'
+        if self.next_key is not None:
+            s = s + ', next key #{}'.format( self.next_key )
+        return s
+    
 class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
@@ -143,7 +162,28 @@ class Ufmt_Condition(object):
         self.conv2 = convs.get( ( self.conv_key2, ) )
         self.cond1 = conds.get( ( self.cond_id1, ) )
         self.cond2 = conds.get( ( self.cond_id2, ) )
-        
+
+    def __str__( self ):
+        if self.operator in ('&', '|', '!'):
+            operand1 = 'cond {}'.format( self.cond_id1 )
+            operand2 = 'cond {}'.format( self.cond_id2 )
+        else:
+            operand1 = 'value {}'.format( self.value_id1 )
+            if self.conv_key1 is not None:
+                operand1 = operand1 + ' : conv {}'.format( self.conv_key1 )
+            operand2 = 'value {}'.format( self.value_id2 )
+            if self.conv_key2 is not None:
+                operand2 = operand2 + ' : conv {}'.format( self.conv_key2 )
+                
+        s = 'Condition #{}:'.format( self.cond_id )
+        if self.operator == '!':
+            s += ' {} {}'.format( self.operator, operand1 )
+        else:
+            s += ' {} {} {}'.format ( operand1, self.operator, operand2 )
+
+        s += ', desc "{}"'.format( self.description )
+        return s
+            
 class Ufmt_Field_Format(object):
 
     def __init__( self, field_id, length_type, length, data_type, field_type, psymbol, pside, description):
@@ -174,7 +214,23 @@ class Ufmt_Field_Format(object):
     def get_excel_values(self ):
         return [self.field_id, self.length_type, self.length, self.data_type, self.field_type, self.psymbol, self.pside, self.description]
 
+    def __str__ ( self ):
+        if self.psymbol is None:
+            pchar = ' '
+        else:
+            pchar = self.psymbol
 
+        if self.pside == 'L':
+            pad = 'Left padded with "{}"'.format(pchar)          
+        elif self.pside == 'R':
+            pad = 'Right padded with "{}"'.format(pchar)
+        else:
+            pad = 'No padding'
+        
+        s = 'Field format #{}: length type {}, length {}, data type {}, field type {}, {}, desc "{}"'
+        s = s.format( self.field_id, self.length_type, self.length, self.data_type, self.field_type, pad, self.description )
+        return s
+    
 class Ufmt_Format(object):
 
     def __init__( self, format_id, format_type, description, bitmap_type):
@@ -197,7 +253,11 @@ class Ufmt_Format(object):
     def get_excel_values(self ):
         return [self.format_id, self.format_type, self.description, self.bitmap_type]
 
-
+    def __str__( self ):
+        s = 'Format #{}: type {}, bitmap type {}, desc "{}"'
+        s = s.format( self.format_id, self.format_type, self.bitmap_type, self.description )
+        return s
+    
 class Ufmt_Field(object):
 
     def __init__( self, format_id, field_no, f_mac, f_key, f_mandatory, description):
@@ -227,6 +287,23 @@ class Ufmt_Field(object):
     def link ( self, formats ):
         self.format = formats.get( ( self.format_id, ) )
 
+    def __str__ ( self ):
+        if self.f_mac == 1:
+            mac = "MAC"
+        else:
+            mac = "No MAC"
+        if self.f_key == 1:
+            key = "Key"
+        else:
+            key = "No key"
+        if self.f_mandatory == 1:
+            mand = "Mandatory"
+        else:
+            mand = "Optional"
+        s = 'Format #{}, field #{}: {}, {}, {}, desc "{}"'
+        s = s.format( self.format_id, self.field_no, mac, key, mand, self.description )
+        return s
+    
 class Ufmt_Build_Rule(object):
 
     def __init__( self, format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write):
@@ -266,6 +343,10 @@ class Ufmt_Build_Rule(object):
         self.conv = convs.get( (self.conv_key, ) )
         self.value = values.get( (self.value_id, ) )
         
+    def __str__ ( self ):
+        s = 'Format #{}, field #{}, rule #{}: field format {}, cond {}, value {}, conv {}, check {}, write {}'
+        s = s.format( self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write )
+        return s
         
 class Ufmt_Format_Select(object):
 
@@ -282,7 +363,7 @@ class Ufmt_Format_Select(object):
         self.trans_type_out = To_Str(trans_type_out)
         self.msg_type_out = To_Str(msg_type_out)
         self.reversal_out = To_Str(reversal_out)
-        self.fIntran_in = To_Str(fIntran_in)
+        self.fintran_in = To_Str(fIntran_in)
         self.acq_inst_in = To_Str(acq_inst_in)
         self.iss_inst_in = To_Str(iss_inst_in)
         self.service_type_in = To_Str(service_type_in)
@@ -301,21 +382,31 @@ class Ufmt_Format_Select(object):
         self.trans_type_out = To_Str(prop_list[9])
         self.msg_type_out = To_Str(prop_list[10])
         self.reversal_out = To_Str(prop_list[11])
-        self.fIntran_in = To_Str(prop_list[12])
+        self.fintran_in = To_Str(prop_list[12])
         self.acq_inst_in = To_Str(prop_list[13])
         self.iss_inst_in = To_Str(prop_list[14])
         self.service_type_in = To_Str(prop_list[15])
         self.key = ( self.formatter, self.rule_num,)
 
     def __list__(self ):
-        return [From_Str(self.formatter), From_Int(self.rule_num), From_Str(self.route_type), From_Str(self.service_id_in), From_Str(self.trans_type_in), From_Str(self.msg_type_in), From_Str(self.reversal_in), From_Str(self.mti), From_Int(self.format_id), From_Str(self.trans_type_out), From_Str(self.msg_type_out), From_Str(self.reversal_out), From_Str(self.fIntran_in), From_Str(self.acq_inst_in), From_Str(self.iss_inst_in), From_Str(self.service_type_in)]
+        return [From_Str(self.formatter), From_Int(self.rule_num), From_Str(self.route_type), From_Str(self.service_id_in), From_Str(self.trans_type_in), From_Str(self.msg_type_in), From_Str(self.reversal_in), From_Str(self.mti), From_Int(self.format_id), From_Str(self.trans_type_out), From_Str(self.msg_type_out), From_Str(self.reversal_out), From_Str(self.fintran_in), From_Str(self.acq_inst_in), From_Str(self.iss_inst_in), From_Str(self.service_type_in)]
 
     def get_excel_values(self ):
-        return [self.formatter, self.rule_num, self.route_type, self.service_id_in, self.trans_type_in, self.msg_type_in, self.reversal_in, self.mti, self.format_id, self.trans_type_out, self.msg_type_out, self.reversal_out, self.fIntran_in, self.acq_inst_in, self.iss_inst_in, self.service_type_in]
+        return [self.formatter, self.rule_num, self.route_type, self.service_id_in, self.trans_type_in, self.msg_type_in, self.reversal_in, self.mti, self.format_id, self.trans_type_out, self.msg_type_out, self.reversal_out, self.fintran_in, self.acq_inst_in, self.iss_inst_in, self.service_type_in]
 
     def link ( self, formats ):
         self.format = formats.get( ( self.format_id, ) )
-        
+
+    def __str__ ( self ):
+        s1 = '(type {}, MTI {}, service id {}, service type {}, trans type {}, msg type {}, reversal {}, fintran {}, acq inst {}, iss inst {})'
+        s1 = s1.format( self.route_type, self.mti, self.service_id_in, self.service_type_in,
+                        self.trans_type_in, self.msg_type_in, self.reversal_in, self.fintran_in, self.acq_inst_in, self.iss_inst_in )
+        s2 = '(format {}, trans type {}, msg type {}, reversal {})'
+        s2 = s2.format( self.format_id, self.trans_type_out, self.msg_type_out, self.reversal_out )
+        s = 'Formatter "{}", rule #{}: {} => {}'
+        s = s.format ( self.formatter, self.rule_num, s1, s2 )
+        return s
+    
 class Ufmt_Set (object):
     def __init__ ( self ):
         self.set = {}
@@ -415,6 +506,12 @@ Delete from {table};
 
     def get( self, key ):
         return self.set.get(key)
+
+    def __str__ ( self ):
+        s = ''
+        for elm in self.set.values():
+            s += str(elm) + '\n'
+        return s
     
 class Ufmt_Value_Set (Ufmt_Set):
     def __init__ ( self ):
@@ -721,9 +818,14 @@ def test8():
         print( cond.cond1.__list__())
     if cond.cond2 is not None:
         print( cond.cond2.__list__())
+
+def test9():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    print( data_set.format_selects)
     
 if __name__ == '__main__':
-    test8()
+    test9()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
