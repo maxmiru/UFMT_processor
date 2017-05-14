@@ -253,10 +253,10 @@ class Ufmt_Field_Format(object):
 
     def __init__( self, field_id, length_type, length, data_type, field_type, psymbol, pside, description):
         self.field_id = To_Int(field_id)
-        self.length_type = To_Int(length_type)
+        self.length_type = Field_Length_Type(To_Int(length_type))
         self.length = To_Int(length)
-        self.data_type = To_Int(data_type)
-        self.field_type = To_Int(field_type)
+        self.data_type = Field_Data_Type (To_Int(data_type))
+        self.field_type = Field_Length_Type(To_Int(field_type))
         self.psymbol = To_Str(psymbol)
         self.pside = To_Str(pside)
         self.description = To_Str(description)
@@ -264,20 +264,20 @@ class Ufmt_Field_Format(object):
 
     def __init__( self, prop_list):
         self.field_id = To_Int(prop_list[0])
-        self.length_type = To_Int(prop_list[1])
+        self.length_type = Field_Length_Type ( To_Int(prop_list[1]) )
         self.length = To_Int(prop_list[2])
-        self.data_type = To_Int(prop_list[3])
-        self.field_type = To_Int(prop_list[4])
+        self.data_type = Field_Data_Type ( To_Int(prop_list[3]) )
+        self.field_type = Field_Length_Type ( To_Int(prop_list[4]) )
         self.psymbol = To_Str(prop_list[5])
         self.pside = To_Str(prop_list[6])
         self.description = To_Str(prop_list[7])
         self.key = ( self.field_id,)
 
     def __list__(self ):
-        return [From_Int(self.field_id), From_Int(self.length_type), From_Int(self.length), From_Int(self.data_type), From_Int(self.field_type), From_Str(self.psymbol), From_Str(self.pside), From_Str(self.description)]
+        return [From_Int(self.field_id), From_Int(self.length_type.value), From_Int(self.length), From_Int(self.data_type.value), From_Int(self.field_type.value), From_Str(self.psymbol), From_Str(self.pside), From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.field_id, self.length_type, self.length, self.data_type, self.field_type, self.psymbol, self.pside, self.description]
+        return [self.field_id, self.length_type.value, self.length, self.data_type.value, self.field_type.value, self.psymbol, self.pside, self.description]
 
     def __str__ ( self ):
         if self.psymbol is None:
@@ -293,38 +293,38 @@ class Ufmt_Field_Format(object):
             pad = 'No padding'
         
         s = 'Field format #{}: length type {}, length {}, data type {}, field type {}, {}, desc "{}"'
-        s = s.format( self.field_id, self.length_type, self.length, self.data_type, self.field_type, pad, self.description )
+        s = s.format( self.field_id, self.length_type.name, self.length, self.data_type.name, self.field_type.name, pad, self.description )
         return s
     
 class Ufmt_Format(object):
 
     def __init__( self, format_id, format_type, description, bitmap_type):
         self.format_id = To_Int(format_id)
-        self.format_type = To_Int(format_type)
+        self.format_type = Format_Type ( To_Int(format_type) )
         self.description = To_Str(description)
-        self.bitmap_type = To_Int(bitmap_type)
+        self.bitmap_type = Bitmap_Type ( To_Int(bitmap_type) )
         self.key = ( self.format_id,)
 
         self.fields = dict()
 
     def __init__( self, prop_list):
         self.format_id = To_Int(prop_list[0])
-        self.format_type = To_Int(prop_list[1])
+        self.format_type = Format_Type ( To_Int(prop_list[1]) )
         self.description = To_Str(prop_list[2])
-        self.bitmap_type = To_Int(prop_list[3])
+        self.bitmap_type = Bitmap_Type ( To_Int(prop_list[3]) )
         self.key = ( self.format_id,)
 
         self.fields = dict()
         
     def __list__(self ):
-        return [From_Int(self.format_id), From_Int(self.format_type), From_Str(self.description), From_Int(self.bitmap_type)]
+        return [From_Int(self.format_id), From_Int(self.format_type.value), From_Str(self.description), From_Int(self.bitmap_type.value)]
 
     def get_excel_values(self ):
-        return [self.format_id, self.format_type, self.description, self.bitmap_type]
+        return [self.format_id, self.format_type.value, self.description, self.bitmap_type.value]
 
     def __str__( self ):
         s = 'Format #{}: type {}, bitmap type {}, desc "{}"'
-        s = s.format( self.format_id, self.format_type, self.bitmap_type, self.description )
+        s = s.format( self.format_id, self.format_type.name, self.bitmap_type.name, self.description )
         return s
 
     def add_to_fields ( self, field ):
