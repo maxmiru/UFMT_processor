@@ -16,6 +16,7 @@ class Value_Type(IntEnum):
     LOCAL = 5
     ITERATOR = 6
     MONEYFLD = 7
+    BITFIELD = 8
 class Value_Subtype(IntEnum):
     STR = 0
     INT = 1
