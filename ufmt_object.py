@@ -56,6 +56,11 @@ class Format_Type(IntEnum):
 class Bitmap_Type(IntEnum):
     HEX = 0
     ASCII = 1
+class Operand_Type(IntEnum):
+    CURRENT = 0
+    TAG = 1
+    STRING = 2
+    NUMBER = 3
 #enum constants - end
     
 #Convert functions - start
@@ -123,6 +128,99 @@ class Complex_Value(object):
             print( '{}{}'.format( tabs, self.values[i] ))
             if self.convs[i] is not None:
                 print( '{}{}'.format(tabs, self.convs[i] ) )
+
+class Arithmetic_Operand ( object ):
+    def __init__ ( self, operand_str, ufmt_values, ufmt_convs ):
+        if operand_str == '{-1}':
+            self.type = Operand_Type.CURRENT
+        elif (operand_str[0], operand_str[-1]) == ('{', '}'):
+            self.type = Operand_Type.TAG
+            tokens = operand_str[1:-1].split(':')
+            value_id = int(tokens[0])
+            if len(tokens) > 1:
+                conv_key = int(tokens[1])
+            else:
+                conv_key = None
+            self.value = ufmt_values.get( (value_id, ))
+            self.conv = ufmt_convs.get( (conv_key, ))
+        elif (operand_str[0], operand_str[-1]) == ('"', '"'):
+            self.type = Operand_Type.STRING
+            self.string = operand_str[1:-1]
+        else:
+            self.type = Operand_Type.NUMBER
+            self.number = int(operand_str)
+            
+    def __str__ ( self ):
+        if self.type == Operand_Type.CURRENT:
+            return '{-1}'
+        if self.type == Operand_Type.TAG:
+            value_id = str(self.value.value_id)
+            if self.conv is None:
+                conv_key = ''
+            else:
+                conv_key = str(self.conv.conv_key)
+            return '{%s:%s}' % (value_id, conv_key )
+        if self.type == Operand_Type.STRING:
+            return '"%s"' % self.string
+        if self.type == Operand_Type.NUMBER:
+            return self.number
+
+    def show_details ( self, indent = 0):
+        tabs = '\t'*indent
+        print( '{}Type: {}'.format( tabs, self.type))
+        if self.type == Operand_Type.TAG:
+            print ('{}{}'.format( tabs, self.value ) )
+            if self.conv is not None:
+                print ('{}{}'.format( tabs, self.conv ) )
+        elif self.type == Operand_Type.STRING:
+            print ('{}"{}"'.format( tabs, self.string ))
+        elif self.type == Operand_Type.NUMBER:
+            print ('{}{}'.format( tabs, self.number ))
+               
+class Arithmetic_Conv_Rule ( object ):    
+    def extract_operand( string ):
+        po_tag = re.compile( '^(\{-?\d+\})' )
+        po_tag2 = re.compile( '^(\{-?\d+:\d+\})' )
+        po_str = re.compile( '^("\w+")' )
+        po_num = re.compile( '^(-?\d+)' )
+        for po in ( po_tag, po_tag2, po_str, po_num ):
+            mo = po.match( string )
+            if mo is not None:
+                return mo.group(1)
+        return None
+    
+    def __init__ ( self, raw_dest_value, ufmt_values, ufmt_convs ):
+        opers = ('+','-','*','/','%','&')
+        operand1 = Arithmetic_Conv_Rule.extract_operand ( raw_dest_value )
+        if operand1 is None:
+            #print( raw_dest_value )
+            raise ValueError('1st operand is not found')
+        remain_dest_value = raw_dest_value[len(operand1):]
+        self.operator = remain_dest_value[0]
+        if self.operator not in ('+','-','*','/','%','&'):
+            #print( raw_dest_value )
+            raise ValueError('Invalid operator %s' % self.operator )
+        remain_dest_value = remain_dest_value[1:]
+        operand2 = Arithmetic_Conv_Rule.extract_operand ( remain_dest_value )
+        if operand2 is None:
+            #print( raw_dest_value )
+            #raise ValueError('2nd operand is not found')        
+            operand2 = '""'
+            
+        self.operands = [ None ] * 2
+        self.operands[0] = Arithmetic_Operand( operand1, ufmt_values, ufmt_convs )
+        self.operands[1] = Arithmetic_Operand( operand2, ufmt_values, ufmt_convs )
+            
+    def __str__ ( self ):
+        return self.operator.join( [ str( operand ) for operand in self.operands ] )
+
+    def show_details ( self, indent = 0):
+        tabs = '\t'*indent
+        print ( '{}Oprand 1:'.format ( tabs ) )
+        self.operands[0].show_details( indent + 1 )
+        print ( '{}Operator = "{}"'.format ( tabs, self.operator ))
+        print ( '{}Oprand 2:'.format ( tabs ) )
+        self.operands[1].show_details( indent + 1 )
         
 class Ufmt_Value(object):
 
@@ -242,10 +340,10 @@ class Ufmt_Conv_Rule(object):
         self.key = ( self.conv_key, self.rule_num,)
 
     def __list__(self ):
-        return [From_Int(self.conv_key), From_Int(self.rule_num), From_Str(self.src_value), From_Str(self.dest_value), From_Int(self.next_key), From_Int(self.is_default)]
+        return [From_Int(self.conv_key), From_Int(self.rule_num), From_Str(self.src_value), From_Str(self.get_raw_dest_value()), From_Int(self.next_key), From_Int(self.is_default)]
 
     def get_excel_values(self ):
-        return [self.conv_key, self.rule_num, self.src_value, self.dest_value, self.next_key, self.is_default]
+        return [self.conv_key, self.rule_num, self.src_value, self.get_raw_dest_value(), self.next_key, self.is_default]
 
     def link ( self, convs ):
         self.conv = convs.get( ( self.conv_key, ) )
@@ -260,7 +358,22 @@ class Ufmt_Conv_Rule(object):
         if self.next_key is not None:
             s = s + ', next key #{}'.format( self.next_key )
         return s
+
+    def validate( self, ufmt_data_set ):
+        if self.conv.conv_type is Conv_Type.ARITHMETIC:
+            self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
+            
+    def get_raw_dest_value( self ):
+        return str(self.value)
     
+    def show_details( self, indent = 0 ):
+        tabs = '\t' * indent
+        print ( '{}{}'.format( tabs, self.conv ) )
+        print ( '{}{}'.format( tabs, self ) )
+        if self.conv.conv_type is Conv_Type.ARITHMETIC and isinstance( self.dest_value, Arithmetic_Conv_Rule ):
+            print ( '{}Destination Arimetic Operation'.format (tabs ))
+            self.dest_value.show_details( indent + 1)
+            
 class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
@@ -772,6 +885,10 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
             conv = convs.get ( ( elm.conv_key, ) )
             conv.add_to_conv_rules ( elm )
             
+    def validate( self, ufmt_data_set ):
+        for elm in self.set.values():
+            elm.validate ( ufmt_data_set )
+                  
 class Ufmt_Condition_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -961,6 +1078,7 @@ class Ufmt_Data_Set (object):
         self.build_rules.link( self.fields, self.field_formats, self.conditions, self.conversions, self.values ) 
         self.format_selects.link ( self.formats )
         self.values.validate ( self )
+        self.conv_rules.validate ( self )
         
 def test():
     data_set = Ufmt_Data_Set()
@@ -1055,9 +1173,18 @@ def test10():
     data_set.values.get((93,)).show_details()
     data_set.values.get((289,)).show_details()
     data_set.export_to_sql()
+
+def test11():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    rule = data_set.conv_rules.get ((112, 1))
+    #ari_rule = Arithmetic_Conv_Rule( rule.dest_value, data_set.values, data_set.conversions )
+    print(rule)
+    rule.show_details()
     
 if __name__ == '__main__':
-    test10()
+    test11()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
