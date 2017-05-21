@@ -402,19 +402,6 @@ class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
         self.__init__( ( cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description ) )
-        '''
-        self.cond_id = To_Int(cond_id)
-        self.operator = To_Str(operator)
-        self.value_id1 = To_Int(value1)
-        self.conv_key1 = To_Int(conv1)
-        self.value_id2 = To_Int(value2)
-        self.conv_key2 = To_Int(conv2)
-        self.cond_id1 = To_Int(cond1)
-        self.cond_id2 = To_Int(cond2)
-        self.f_strcmp = To_Int(f_strcmp)
-        self.description = To_Str(description)
-        self.key = ( self.cond_id,)
-        '''
         
     def __init__( self, prop_list):
         self.cond_id = To_Int(prop_list[0])
@@ -436,8 +423,8 @@ class Ufmt_Condition(object):
                 From_Int(self.conv_key1),
                 From_Int(self.get_value_id2()),
                 From_Int(self.conv_key2),
-                From_Int(self.cond_id1),
-                From_Int(self.cond_id2),
+                From_Int(self.get_cond_id1()),
+                From_Int(self.get_cond_id2()),
                 From_Int(self.f_strcmp),
                 From_Str(self.description)]
 
@@ -448,8 +435,8 @@ class Ufmt_Condition(object):
                 self.conv_key1,
                 self.get_value_id2(),
                 self.conv_key2,
-                self.cond_id1,
-                self.cond_id2,
+                self.get_cond_id1(),
+                self.get_cond_id2(),
                 self.f_strcmp,
                 self.description]
 
@@ -472,11 +459,23 @@ class Ufmt_Condition(object):
             return self.value2.value_id
         else:
             return self.value_id2
+
+    def get_cond_id1( self ):
+        if self.cond1 is not None:
+            return self.cond1.cond_id
+        else:
+            return self.cond_id1
+
+    def get_cond_id2( self ):
+        if self.cond2 is not None:
+            return self.cond2.cond_id
+        else:
+            return self.cond_id2
         
     def __str__( self ):
         if self.operator in ('&', '|', '!'):
-            operand1 = 'cond {}'.format( self.cond_id1 )
-            operand2 = 'cond {}'.format( self.cond_id2 )
+            operand1 = 'cond {}'.format( self.get_cond_id1() )
+            operand2 = 'cond {}'.format( self.get_cond_id2() )
         else:
             operand1 = 'value {}'.format( self.get_value_id1() )
             if self.conv_key1 is not None:
@@ -493,7 +492,11 @@ class Ufmt_Condition(object):
 
         s += ', desc "{}"'.format( self.description )
         return s
-            
+
+    def change_key ( self, new_cond_id ):
+        self.cond_id = new_cond_id
+        self.key = ( self.cond_id,)
+        
 class Ufmt_Field_Format(object):
 
     def __init__( self, field_id, length_type, length, data_type, field_type, psymbol, pside, description):
@@ -700,18 +703,6 @@ class Ufmt_Build_Rule(object):
 
     def __init__( self, format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write):
         self.__init__ ( (format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write) )
-        '''
-        self.format_id = To_Int(format_id)
-        self.field_no = To_Int(field_no)
-        self.priority = To_Int(priority)
-        self.field_id = To_Int(field_id)
-        self.cond_id = To_Int(cond_id)
-        self.value_id = To_Int(value_id)
-        self.conv_key = To_Int(conv_key)
-        self.f_check = To_Int(f_check)
-        self.f_write = To_Int(f_write)
-        self.key = ( self.format_id, self.field_no, self.priority,)
-        '''
         
     def __init__( self, prop_list):
         self.format_id = To_Int(prop_list[0])
@@ -736,13 +727,19 @@ class Ufmt_Build_Rule(object):
             return self.field.get_format_id()
         else:
             return self.format_id
+
+    def get_cond_id( self ):
+        if self.cond is not None:
+            return self.cond.cond_id
+        else:
+            return self.cond_id
         
     def __list__(self ):
         return [From_Int(self.field.get_format_id()),
                 From_Int(self.field_no),
                 From_Int(self.priority),
                 From_Int(self.field_id),
-                From_Int(self.cond_id),
+                From_Int(self.get_cond_id()),
                 From_Int(self.get_value_id()),
                 From_Int(self.conv_key),
                 From_Int(self.f_check),
@@ -753,7 +750,7 @@ class Ufmt_Build_Rule(object):
                 self.field_no,
                 self.priority,
                 self.field_id,
-                self.cond_id,
+                self.get_cond_id(),
                 self.get_value_id(),
                 self.conv_key,
                 self.f_check,
@@ -768,7 +765,7 @@ class Ufmt_Build_Rule(object):
         
     def __str__ ( self ):
         s = 'Format #{}, field #{}, rule #{}: field format {}, cond {}, value {}, conv {}, check {}, write {}'
-        s = s.format( self.field.get_format_id(), self.field_no, self.priority, self.field_id, self.cond_id,
+        s = s.format( self.field.get_format_id(), self.field_no, self.priority, self.field_id, self.get_cond_id(),
                       self.get_value_id(), self.conv_key, self.f_check, self.f_write )
         return s
 
@@ -1078,7 +1075,16 @@ class Ufmt_Condition_Set (Ufmt_Set):
     def link ( self, values, convs, conds ):
         for elm in self.set.values():
             elm.link( values, convs, conds )
-            
+
+    def change_key ( self, old_cond_id, new_cond_id ):
+        old_key = ( old_cond_id, )
+        new_key = ( new_cond_id, )
+        if new_key in self.set:
+            raise KeyError('Condition ID {} already exists'.format(new_cond_id) )
+        cond = self.set.pop( old_key )
+        cond.change_key ( new_cond_id )
+        self.set[new_key] = cond
+        
 class Ufmt_Field_Format_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1375,7 +1381,8 @@ def test13():
     data_set.load_from_excel('UFMT_DATA')
     data_set.link()
     #data_set.values.change_key ( 3, 363 )
-    data_set.formats.change_key ( 2, 10 )
+    #data_set.formats.change_key ( 2, 10 )
+    data_set.conditions.change_key( 20, 95 )
     data_set.save_to_excel('UFMT_DATA_2')
     data_set.export_to_sql()
     
@@ -1384,8 +1391,8 @@ def test14():
     data_set.load_from_excel('UFMT_DATA_2')
     data_set.link()
     #data_set.values.change_key ( 363, 3 )
-    data_set.formats.change_key ( 10, 2 )
-    #data_set.save_to_excel('UFMT_DATA_2')
+    #data_set.formats.change_key ( 10, 2 )
+    data_set.conditions.change_key( 95, 20 )
     data_set.export_to_sql()
         
 if __name__ == '__main__':
