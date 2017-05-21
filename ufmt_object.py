@@ -129,6 +129,22 @@ class Complex_Value(object):
             if self.convs[i] is not None:
                 print( '{}{}'.format(tabs, self.convs[i] ) )
 
+class Bitfield_Value(object):
+    def __init__ ( self, raw_value, ufmt_values ):
+        value_ids = raw_value.split('.')
+        if len(value_ids) != 2:
+            raise ValueError('Invalid bit-field value format')
+        self.value = ufmt_values.get( (int(value_ids[0]),) )
+        self.bit_value = ufmt_values.get( (int(value_ids[1]),) )
+        
+    def __str__ ( self ):
+        return '{}.{}'.format( self.value.value_id, self.bit_value.value_id )
+    
+    def show_details ( self, indent = 0 ):
+        tabs = '\t'*indent
+        print( '{}Value: {}'.format( tabs, self.value ))
+        print( '{}Bit: {}'.format( tabs, self.bit_value ) )
+        
 class Arithmetic_Operand ( object ):
     def __init__ ( self, operand_str, ufmt_values, ufmt_convs ):
         if operand_str == '{-1}':
@@ -163,7 +179,7 @@ class Arithmetic_Operand ( object ):
         if self.type == Operand_Type.STRING:
             return '"%s"' % self.string
         if self.type == Operand_Type.NUMBER:
-            return self.number
+            return str(self.number)
 
     def show_details ( self, indent = 0):
         tabs = '\t'*indent
@@ -254,6 +270,8 @@ class Ufmt_Value(object):
     def validate( self, ufmt_data_set ):
         if self.value_type is Value_Type.COMPLEX:
             self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
+        elif self.value_type is Value_Type.BITFIELD:
+            self.value = Bitfield_Value ( self.value, ufmt_data_set.values )
         elif self.value_type is Value_Type.FMT:
             self.value = ufmt_data_set.formats.get( ( int(self.value), ))
         elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
@@ -275,6 +293,8 @@ class Ufmt_Value(object):
         tabs = '\t'*indent
         print ( '{}{}'.format( tabs, self ) )
         if self.value_type is Value_Type.COMPLEX and isinstance( self.value, Complex_Value ) :
+            self.value.show_details( indent + 1 )
+        elif self.value_type is Value_Type.BITFIELD and isinstance( self.value, Bitfield_Value ) :
             self.value.show_details( indent + 1 )
         elif self.value_type is Value_Type.FMT and isinstance( self.value, Ufmt_Format ):
             self.value.show_details( indent + 1 )
@@ -364,7 +384,7 @@ class Ufmt_Conv_Rule(object):
             self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
             
     def get_raw_dest_value( self ):
-        return str(self.value)
+        return str(self.dest_value)
     
     def show_details( self, indent = 0 ):
         tabs = '\t' * indent
@@ -1182,9 +1202,17 @@ def test11():
     #ari_rule = Arithmetic_Conv_Rule( rule.dest_value, data_set.values, data_set.conversions )
     print(rule)
     rule.show_details()
+
+def test12():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    data_set.values.get((304,)).show_details()
+    data_set.values.get((324,)).show_details()
+    data_set.export_to_sql()
     
 if __name__ == '__main__':
-    test11()
+    test12()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
