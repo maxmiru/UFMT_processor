@@ -172,10 +172,10 @@ class Arithmetic_Operand ( object ):
         if self.type == Operand_Type.TAG:
             value_id = str(self.value.value_id)
             if self.conv is None:
-                conv_key = ''
+                with_conv_key = ''
             else:
-                conv_key = str(self.conv.conv_key)
-            return '{%s:%s}' % (value_id, conv_key )
+                with_conv_key = ':' + str(self.conv.conv_key)
+            return '{%s%s}' % (value_id, with_conv_key )
         if self.type == Operand_Type.STRING:
             return '"%s"' % self.string
         if self.type == Operand_Type.NUMBER:
@@ -298,7 +298,11 @@ class Ufmt_Value(object):
             self.value.show_details( indent + 1 )
         elif self.value_type is Value_Type.FMT and isinstance( self.value, Ufmt_Format ):
             self.value.show_details( indent + 1 )
-            
+
+    def change_key ( self, new_value_id ):
+        self.value_id = new_value_id
+        self.key = ( self.value_id,)
+        
 class Ufmt_Conversion(object):
 
     def __init__( self, conv_key, conv_type, description):
@@ -397,6 +401,8 @@ class Ufmt_Conv_Rule(object):
 class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
+        self.__init__( ( cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description ) )
+        '''
         self.cond_id = To_Int(cond_id)
         self.operator = To_Str(operator)
         self.value_id1 = To_Int(value1)
@@ -408,7 +414,8 @@ class Ufmt_Condition(object):
         self.f_strcmp = To_Int(f_strcmp)
         self.description = To_Str(description)
         self.key = ( self.cond_id,)
-
+        '''
+        
     def __init__( self, prop_list):
         self.cond_id = To_Int(prop_list[0])
         self.operator = To_Str(prop_list[1])
@@ -423,10 +430,28 @@ class Ufmt_Condition(object):
         self.key = ( self.cond_id,)
 
     def __list__(self ):
-        return [From_Int(self.cond_id), From_Str(self.operator), From_Int(self.value_id1), From_Int(self.conv_key1), From_Int(self.value_id2), From_Int(self.conv_key2), From_Int(self.cond_id1), From_Int(self.cond_id2), From_Int(self.f_strcmp), From_Str(self.description)]
+        return [From_Int(self.cond_id),
+                From_Str(self.operator),
+                From_Int(self.get_value_id1()),
+                From_Int(self.conv_key1),
+                From_Int(self.get_value_id2()),
+                From_Int(self.conv_key2),
+                From_Int(self.cond_id1),
+                From_Int(self.cond_id2),
+                From_Int(self.f_strcmp),
+                From_Str(self.description)]
 
     def get_excel_values(self ):
-        return [self.cond_id, self.operator, self.value_id1, self.conv_key1, self.value_id2, self.conv_key2, self.cond_id1, self.cond_id2, self.f_strcmp, self.description]
+        return [self.cond_id,
+                self.operator,
+                self.get_value_id1(),
+                self.conv_key1,
+                self.get_value_id2(),
+                self.conv_key2,
+                self.cond_id1,
+                self.cond_id2,
+                self.f_strcmp,
+                self.description]
 
     def link ( self, values, convs, conds ):
         self.value1 = values.get( ( self.value_id1, ) )
@@ -436,6 +461,18 @@ class Ufmt_Condition(object):
         self.cond1 = conds.get( ( self.cond_id1, ) )
         self.cond2 = conds.get( ( self.cond_id2, ) )
 
+    def get_value_id1( self ):
+        if self.value1 is not None:
+            return self.value1.value_id
+        else:
+            return self.value_id1
+
+    def get_value_id2( self ):
+        if self.value2 is not None:
+            return self.value2.value_id
+        else:
+            return self.value_id2
+        
     def __str__( self ):
         if self.operator in ('&', '|', '!'):
             operand1 = 'cond {}'.format( self.cond_id1 )
@@ -630,6 +667,8 @@ class Ufmt_Field(object):
 class Ufmt_Build_Rule(object):
 
     def __init__( self, format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write):
+        self.__init__ ( (format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write) )
+        '''
         self.format_id = To_Int(format_id)
         self.field_no = To_Int(field_no)
         self.priority = To_Int(priority)
@@ -640,7 +679,8 @@ class Ufmt_Build_Rule(object):
         self.f_check = To_Int(f_check)
         self.f_write = To_Int(f_write)
         self.key = ( self.format_id, self.field_no, self.priority,)
-
+        '''
+        
     def __init__( self, prop_list):
         self.format_id = To_Int(prop_list[0])
         self.field_no = To_Int(prop_list[1])
@@ -653,11 +693,33 @@ class Ufmt_Build_Rule(object):
         self.f_write = To_Int(prop_list[8])
         self.key = ( self.format_id, self.field_no, self.priority,)
 
+    def get_value_id( self ):
+        if self.value is not None:
+            return self.value.value_id
+        else:
+            return self.value_id
+        
     def __list__(self ):
-        return [From_Int(self.format_id), From_Int(self.field_no), From_Int(self.priority), From_Int(self.field_id), From_Int(self.cond_id), From_Int(self.value_id), From_Int(self.conv_key), From_Int(self.f_check), From_Int(self.f_write)]
+        return [From_Int(self.format_id),
+                From_Int(self.field_no),
+                From_Int(self.priority),
+                From_Int(self.field_id),
+                From_Int(self.cond_id),
+                From_Int(self.get_value_id()),
+                From_Int(self.conv_key),
+                From_Int(self.f_check),
+                From_Int(self.f_write)]
 
     def get_excel_values(self ):
-        return [self.format_id, self.field_no, self.priority, self.field_id, self.cond_id, self.value_id, self.conv_key, self.f_check, self.f_write]
+        return [self.format_id,
+                self.field_no,
+                self.priority,
+                self.field_id,
+                self.cond_id,
+                self.get_value_id(),
+                self.conv_key,
+                self.f_check,
+                self.f_write]
 
     def link( self, fields, field_formats, conds, convs, values ):
         self.field = fields.get( ( self.format_id, self.field_no, ) )
@@ -866,7 +928,16 @@ class Ufmt_Value_Set (Ufmt_Set):
     def validate( self, ufmt_data_set ):
         for elm in self.set.values():
             elm.validate ( ufmt_data_set )
-            
+
+    def change_key ( self, old_value_id, new_value_id ):
+        old_key = ( old_value_id, )
+        new_key = ( new_value_id, )
+        if new_key in self.set:
+            raise KeyError('{} already exists'.format(new_value_id) )
+        value = self.set.pop( old_key )
+        value.change_key ( new_value_id )
+        self.set[new_key] = value
+        
 class Ufmt_Conversion_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1210,9 +1281,25 @@ def test12():
     data_set.values.get((304,)).show_details()
     data_set.values.get((324,)).show_details()
     data_set.export_to_sql()
+
+def test13():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    data_set.values.change_key ( 3, 363 )
+    data_set.save_to_excel('UFMT_DATA_2')
+    data_set.export_to_sql()
     
+def test14():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA_2')
+    data_set.link()
+    data_set.values.change_key ( 363, 3 )
+    #data_set.save_to_excel('UFMT_DATA_2')
+    data_set.export_to_sql()
+        
 if __name__ == '__main__':
-    test12()
+    test14()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
