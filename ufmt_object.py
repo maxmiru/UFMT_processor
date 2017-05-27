@@ -989,7 +989,9 @@ Delete from {table};
             file_path = os.path.join( dir_path, file_name + '.sql' )
         file = open( file_path , 'w')
         file.write( file_header_str )
-        for key in self.set:
+        keys = list(self.set.keys())
+        keys.sort()
+        for key in keys:
             val_str = ','.join ( ["'%s'" % i for i in self.set[key].__list__() ] )
             sql_str = insert_sql_fmt.format( values = val_str )
             file.write( sql_str )
@@ -1029,7 +1031,9 @@ Delete from {table};
 
         #write data rows
         row_num=4
-        for key in self.set:
+        keys = list(self.set.keys())
+        keys.sort()
+        for key in keys:
             col_num = 1
             for value in self.set[key].get_excel_values():
                 sheet.cell(row = row_num, column = col_num).value = value
@@ -1513,7 +1517,7 @@ def test14():
     data_set.export_to_sql()
 
 if __name__ == '__main__':
-    #test13()
+    test13()
     test14()
     print('Warning! This is a module, please don\'t execute it directly!')
     
