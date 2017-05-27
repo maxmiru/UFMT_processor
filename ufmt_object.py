@@ -338,9 +338,12 @@ class Ufmt_Conversion(object):
         for conv_rule in self.conv_rules.values():
             print ( '{}{}'.format( tabs, conv_rule ) )
 
-    def change_key ( self, new_conv_key ):
+    def change_key ( self, new_conv_key, conv_rules ):
+        old_conv_key = self.conv_key
         self.conv_key = new_conv_key
         self.key = ( self.conv_key,)
+        for rule_num in self.conv_rules:
+            conv_rules.change_key( (old_conv_key, rule_num), (new_conv_key, rule_num ) )
         
 class Ufmt_Conv_Rule(object):
 
@@ -414,7 +417,11 @@ class Ufmt_Conv_Rule(object):
         if self.conv.conv_type is Conv_Type.ARITHMETIC and isinstance( self.dest_value, Arithmetic_Conv_Rule ):
             print ( '{}Destination Arimetic Operation'.format (tabs ))
             self.dest_value.show_details( indent + 1)
-            
+
+    def change_key ( self, new_key ):
+        ( self.conv_key, self.rule_num ) = new_key
+        self.key = new_key
+        
 class Ufmt_Condition(object):
 
     def __init__( self, cond_id, operator, value1, conv1, value2, conv2, cond1, cond2, f_strcmp, description):
@@ -1067,13 +1074,13 @@ class Ufmt_Conversion_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_CONVERSION"
 
-    def change_key ( self, old_conv_key, new_conv_key ):
+    def change_key ( self, old_conv_key, new_conv_key, conv_rules ):
         old_key = ( old_conv_key, )
         new_key = ( new_conv_key, )
         if new_key in self.set:
             raise KeyError('Conversion key {} already exists'.format(new_conv_key) )
         conv = self.set.pop( old_key )
-        conv.change_key ( new_conv_key )
+        conv.change_key ( new_conv_key, conv_rules )
         self.set[new_key] = conv
 
 class Ufmt_Conv_Rule_Set (Ufmt_Set):
@@ -1101,7 +1108,14 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
     def validate( self, ufmt_data_set ):
         for elm in self.set.values():
             elm.validate ( ufmt_data_set )
-                  
+
+    def change_key ( self, old_key, new_key ):
+        if new_key in self.set:
+            raise KeyError('Key {} already exists'.format(new_conv_key) )
+        elm = self.set.pop( old_key )
+        elm.change_key ( new_key )
+        self.set[new_key] = elm        
+    
 class Ufmt_Condition_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1317,7 +1331,22 @@ class Ufmt_Data_Set (object):
         self.format_selects.link ( self.formats )
         self.values.validate ( self )
         self.conv_rules.validate ( self )
-        
+
+    def change_conv_key ( self, old, new ):
+        self.conversions.change_key ( old, new, self.conv_rules )
+
+    def change_value_id ( self, old, new ):
+        self.values.change_key ( old, new )
+
+    def change_cond_id ( self, old, new ):
+        self.conditions.change_key ( old, new )
+
+    def change_format_id ( self, old, new ):
+        self.formats.change_key ( old, new )
+
+    def change_field_format_id ( self, old, new ):
+        self.field_formats.change_key ( old, new )
+    
 def test():
     data_set = Ufmt_Data_Set()
     data_set.load_from_sql()
@@ -1433,11 +1462,12 @@ def test13():
     data_set = Ufmt_Data_Set()
     data_set.load_from_excel('UFMT_DATA')
     data_set.link()
-    #data_set.values.change_key ( 3, 363 )
-    #data_set.formats.change_key ( 2, 10 )
-    #data_set.conditions.change_key( 20, 95 )
-    data_set.field_formats.change_key ( 24, 46 )
-    data_set.conversions.change_key ( 1, 165 )
+    data_set.change_value_id ( 3, 363 )
+    data_set.change_format_id ( 2, 10 )
+    data_set.change_cond_id ( 20, 95 )
+    data_set.change_field_format_id ( 24, 46 )
+    data_set.change_conv_key ( 1, 165 )
+    #print( data_set.conv_rules.get ( (165, 1) ))
     data_set.save_to_excel('UFMT_DATA_2')
     data_set.export_to_sql()
     
@@ -1449,12 +1479,12 @@ def test14():
     #data_set.formats.change_key ( 10, 2 )
     #data_set.conditions.change_key( 95, 20 )
     data_set.field_formats.change_key ( 46, 24 )
-    data_set.conversions.change_key ( 165, 1 )
+    data_set.change_conv_key ( 165, 1 )
     data_set.export_to_sql()
-        
+
 if __name__ == '__main__':
-    #test13()
-    test14()
+    test13()
+    #test14()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
