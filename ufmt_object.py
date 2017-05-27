@@ -638,10 +638,13 @@ class Ufmt_Format(object):
                     s += '\n{}{}'.format ( tabs3, rule.conv )
                 print ( s )
 
-    def change_key ( self, new_format_id ):
+    def change_key ( self, new_format_id, fields, build_rules ):
+        old_format_id = self.format_id
         self.format_id = new_format_id
         self.key = ( self.format_id,)
-        
+        for field_no in self.fields:
+            fields.change_key ( ( old_format_id, field_no ), ( new_format_id, field_no ), build_rules )
+            
 class Ufmt_Field(object):
 
     def __init__( self, format_id, field_no, f_mac, f_key, f_mandatory, description):
@@ -730,7 +733,14 @@ class Ufmt_Field(object):
             if rule.conv is not None:
                 s += '\n{}{}'.format( tabs2, rule.conv )
             print ( s )
-            
+
+    def change_key ( self, new_key, build_rules ):
+        old_key = self.key
+        self.key = new_key
+        ( self.format_id, self.field_no,) = new_key
+        for priority in self.build_rules:
+            build_rules.change_key( (old_key[0], old_key[1], priority), (new_key[0], new_key[1], priority ) )
+
 class Ufmt_Build_Rule(object):
 
     def __init__( self, format_id, field_no, priority, field_id, cond_id, value_id, conv_key, f_check, f_write):
@@ -824,6 +834,10 @@ class Ufmt_Build_Rule(object):
         print ( '{}{}'.format( tabs, self.value ) )
         if self.conv is not None:
             print ( '{}{}'.format( tabs, self.conv ) )
+
+    def change_key ( self, new_key ):
+        ( self.format_id, self.field_no, self.priority,) = new_key
+        self.key = new_key
         
 class Ufmt_Format_Select(object):
 
@@ -1111,7 +1125,7 @@ class Ufmt_Conv_Rule_Set (Ufmt_Set):
 
     def change_key ( self, old_key, new_key ):
         if new_key in self.set:
-            raise KeyError('Key {} already exists'.format(new_conv_key) )
+            raise KeyError('Key {} already exists'.format(new_key) )
         elm = self.set.pop( old_key )
         elm.change_key ( new_key )
         self.set[new_key] = elm        
@@ -1183,13 +1197,13 @@ class Ufmt_Format_Set (Ufmt_Set):
     def get_table_name( self ):
         return "UFMT_FORMAT"
 
-    def change_key ( self, old_format_id, new_format_id ):
+    def change_key ( self, old_format_id, new_format_id, fields, build_rules ):
         old_key = ( old_format_id, )
         new_key = ( new_format_id, )
         if new_key in self.set:
             raise KeyError('Format ID {} already exists'.format(new_format_id) )
         u_format = self.set.pop( old_key )
-        u_format.change_key ( new_format_id )
+        u_format.change_key ( new_format_id, fields, build_rules )
         self.set[new_key] = u_format
         
 class Ufmt_Field_Set (Ufmt_Set):
@@ -1213,6 +1227,13 @@ class Ufmt_Field_Set (Ufmt_Set):
 
             _format = formats.get( (elm.format_id, ) )
             _format.add_to_fields ( elm )
+
+    def change_key ( self, old_key, new_key, build_rules ):
+        if new_key in self.set:
+            raise KeyError('Key {} already exists'.format(new_key) )
+        elm = self.set.pop( old_key )
+        elm.change_key ( new_key, build_rules )
+        self.set[new_key] = elm        
             
 class Ufmt_Build_Rule_Set (Ufmt_Set):
     def __init__ ( self ):
@@ -1235,7 +1256,14 @@ class Ufmt_Build_Rule_Set (Ufmt_Set):
             
             field = fields.get( ( elm.format_id, elm.field_no ) )
             field.add_to_build_rules ( elm )
-            
+
+    def change_key ( self, old_key, new_key ):
+        if new_key in self.set:
+            raise KeyError('Key {} already exists'.format(new_key) )
+        elm = self.set.pop( old_key )
+        elm.change_key ( new_key )
+        self.set[new_key] = elm
+        
 class Ufmt_Format_Select_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1342,7 +1370,7 @@ class Ufmt_Data_Set (object):
         self.conditions.change_key ( old, new )
 
     def change_format_id ( self, old, new ):
-        self.formats.change_key ( old, new )
+        self.formats.change_key ( old, new, self.fields, self.build_rules )
 
     def change_field_format_id ( self, old, new ):
         self.field_formats.change_key ( old, new )
@@ -1468,6 +1496,8 @@ def test13():
     data_set.change_field_format_id ( 24, 46 )
     data_set.change_conv_key ( 1, 165 )
     #print( data_set.conv_rules.get ( (165, 1) ))
+    print ( data_set.build_rules.get( (10,1,1) ) )
+    print ( data_set.fields.get( (10,1)))
     data_set.save_to_excel('UFMT_DATA_2')
     data_set.export_to_sql()
     
@@ -1475,16 +1505,16 @@ def test14():
     data_set = Ufmt_Data_Set()
     data_set.load_from_excel('UFMT_DATA_2')
     data_set.link()
-    #data_set.values.change_key ( 363, 3 )
-    #data_set.formats.change_key ( 10, 2 )
-    #data_set.conditions.change_key( 95, 20 )
+    data_set.change_value_id ( 363, 3 )
+    data_set.change_format_id ( 10, 2 )
+    data_set.change_cond_id ( 95, 20 )
     data_set.field_formats.change_key ( 46, 24 )
     data_set.change_conv_key ( 165, 1 )
     data_set.export_to_sql()
 
 if __name__ == '__main__':
-    test13()
-    #test14()
+    #test13()
+    test14()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
