@@ -358,6 +358,8 @@ class Ufmt_Conv_Rule(object):
         self.next_key = To_Int(prop_list[4])
         self.is_default = To_Int(prop_list[5])
         self.key = ( self.conv_key, self.rule_num,)
+        self.conv = None
+        self.next_conv = None
 
     def get_conv_key( self ):
         if self.conv is not None:
@@ -439,7 +441,13 @@ class Ufmt_Condition(object):
         self.f_strcmp = To_Int(prop_list[8])
         self.description = To_Str(prop_list[9])
         self.key = ( self.cond_id,)
-
+        self.value1 = None
+        self.value2 = None
+        self.conv1 = None
+        self.conv2 = None
+        self.cond1 = None
+        self.cond2 = None
+        
     def __list__(self ):
         return [From_Int(self.cond_id),
                 From_Str(self.operator),
@@ -669,8 +677,8 @@ class Ufmt_Field(object):
         self.f_mandatory = To_Int(prop_list[4])
         self.description = To_Str(prop_list[5])
         self.key = ( self.format_id, self.field_no,)
-
         self.build_rules = dict()
+        self.format = None
 
     def get_format_id ( self ):
         if self.format is not None:
@@ -757,7 +765,12 @@ class Ufmt_Build_Rule(object):
         self.f_check = To_Int(prop_list[7])
         self.f_write = To_Int(prop_list[8])
         self.key = ( self.format_id, self.field_no, self.priority,)
-
+        self.field = None
+        self.field_format = None
+        self.cond = None
+        self.conv = None
+        self.value = None
+        
     def get_value_id( self ):
         if self.value is not None:
             return self.value.value_id
@@ -789,7 +802,7 @@ class Ufmt_Build_Rule(object):
             return self.conv_key
         
     def __list__(self ):
-        return [From_Int(self.field.get_format_id()),
+        return [From_Int(self.get_format_id()),
                 From_Int(self.field_no),
                 From_Int(self.priority),
                 From_Int(self.get_field_id()),
@@ -800,7 +813,7 @@ class Ufmt_Build_Rule(object):
                 From_Int(self.f_write)]
 
     def get_excel_values(self ):
-        return [self.field.get_format_id(),
+        return [self.get_format_id(),
                 self.field_no,
                 self.priority,
                 self.get_field_id(),
@@ -819,7 +832,7 @@ class Ufmt_Build_Rule(object):
         
     def __str__ ( self ):
         s = 'Format #{}, field #{}, rule #{}: field format {}, cond {}, value {}, conv {}, check {}, write {}'
-        s = s.format( self.field.get_format_id(), self.field_no, self.priority, self.get_field_id(), self.get_cond_id(),
+        s = s.format( self.get_format_id(), self.field_no, self.priority, self.get_field_id(), self.get_cond_id(),
                       self.get_value_id(), self.get_conv_key(), self.f_check, self.f_write )
         return s
 
@@ -883,7 +896,8 @@ class Ufmt_Format_Select(object):
         self.iss_inst_in = To_Str(prop_list[14])
         self.service_type_in = To_Str(prop_list[15])
         self.key = ( self.formatter, self.rule_num,)
-
+        self.format = None
+        
     def get_format_id ( self ):
         if self.format is not None:
             return self.format.format_id
@@ -1411,8 +1425,9 @@ def test4():
 
 def test5():
     data_set = Ufmt_Data_Set()
-    data_set.load_from_excel('UFMT_DATA', '.')
-    data_set.export_to_sql( '.' )
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    data_set.export_to_sql( )
 
 def test6():
     data_set = Ufmt_Data_Set()
@@ -1517,8 +1532,9 @@ def test14():
     data_set.export_to_sql()
 
 if __name__ == '__main__':
-    test13()
-    test14()
+    #test13()
+    #test14()
+    test5()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
