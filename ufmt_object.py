@@ -65,9 +65,10 @@ class Operand_Type(IntEnum):
     
 #Convert functions - start
 def To_Int( ext_string ):
-    if not ext_string.isdecimal():
+    try:
+        return int( ext_string )
+    except Exception:
         return None
-    return int(ext_string)
 
 def To_Str( ext_string ):
     if ext_string == '':
