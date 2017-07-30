@@ -112,6 +112,8 @@ class Complex_Value(object):
             else:
                 conv_key = None
             u_value = ufmt_values.get( (value_id, ))
+            if u_value is None:
+                raise ValueError('Invalid value id {}'.format(value_id))
             u_conv = ufmt_convs.get( (conv_key, ))
             self.values.append( u_value )
             self.convs.append( u_conv )
@@ -276,19 +278,23 @@ class Ufmt_Value(object):
         return s
 
     def validate( self, ufmt_data_set ):
-        if self.value_type is Value_Type.COMPLEX:
-            self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
-        elif self.value_type is Value_Type.BITFIELD:
-            self.value = Bitfield_Value ( self.value, ufmt_data_set.values )
-        elif self.value_type is Value_Type.FMT:
-            self.value = ufmt_data_set.formats.get( ( int(self.value), ))
-        elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
-            self.value = int( self.value )
-        elif self.value_type is Value_Type.CONST:
-            if self.value_subtype in (Value_Subtype.INT, Value_Subtype.LONG_LONG ):
+        try:
+            if self.value_type is Value_Type.COMPLEX:
+                self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
+            elif self.value_type is Value_Type.BITFIELD:
+                self.value = Bitfield_Value ( self.value, ufmt_data_set.values )
+            elif self.value_type is Value_Type.FMT:
+                self.value = ufmt_data_set.formats.get( ( int(self.value), ))
+            elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
                 self.value = int( self.value )
-            elif self.value_subtype in ( Value_Subtype.FLOAT, Value_Subtype.FLOAT_IP ):
-                self.value = float( self.value )
+            elif self.value_type is Value_Type.CONST:
+                if self.value_subtype in (Value_Subtype.INT, Value_Subtype.LONG_LONG ):
+                    self.value = int( self.value )
+                elif self.value_subtype in ( Value_Subtype.FLOAT, Value_Subtype.FLOAT_IP ):
+                    self.value = float( self.value )
+        except Exception as e:
+            #logging.error( )
+            print( 'Invalid value {}, error {}'.format( self.value_id, e ) )
             
     def get_raw_value( self ):
         if self.value is None:
@@ -414,8 +420,11 @@ class Ufmt_Conv_Rule(object):
         return s
 
     def validate( self, ufmt_data_set ):
-        if self.conv.conv_type is Conv_Type.ARITHMETIC:
-            self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
+        try:
+            if self.conv.conv_type is Conv_Type.ARITHMETIC:
+                self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
+        except Exception as e:
+            print('Invalid conv key {},{}, error "{}"'.format( self.get_conv_key(), self.rule_num, e ) )
             
     def get_raw_dest_value( self ):
         return str(self.dest_value)
