@@ -4,7 +4,14 @@ This module define classes that are used by ufmt_data_processor
 '''
 
 import os, openpyxl, logging, sys, re, csv
-from enum import IntEnum 
+from enum import IntEnum
+try:
+    import cx_Oracle
+except Exception:
+    logging.warn('Oracle import/export is not supported')
+
+#configuration
+oracle_db_string='SVFE_TEST_BSM/SVFE_TEST_BSM1@BSM_DEV_FE'
 
 #enum constants - start
 class Value_Type(IntEnum):
@@ -1055,6 +1062,24 @@ Delete from {table};
                 col_num=col_num+1
             row_num=row_num+1
 
+    def get_oracle_select_query( self ):
+        return 'SELECT {} FROM {}'.format( ','.join( self.headers ), self.get_table_name() )
+    
+    def load_from_oracle_db ( self, conn ):
+        statement = self.get_oracle_select_query()
+        cursor = conn.cursor().execute( statement )
+        for row in cursor:        
+            data_record = [''] * len(row)
+            for i in range( len(row) ):
+                if row[i] == None:
+                    data_record[i] = ''
+                else:
+                    data_record[i] = str(row[i])
+            
+            logging.debug ( data_record )
+            elm = self.new_element(data_record)
+            self.set[elm.key] = elm
+            
     def get( self, key ):
         return self.set.get(key)
 
@@ -1091,7 +1116,7 @@ class Ufmt_Value_Set (Ufmt_Set):
         value = self.set.pop( old_key )
         value.change_key ( new_value_id )
         self.set[new_key] = value
-        
+       
 class Ufmt_Conversion_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1304,7 +1329,7 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
         
 
 class Ufmt_Data_Set (object):
-    def __init__ ( self ):
+    def __init__ ( self, ora_db_str = None ):
         self.values = Ufmt_Value_Set()
         self.conversions = Ufmt_Conversion_Set()
         self.conv_rules = Ufmt_Conv_Rule_Set()
@@ -1314,7 +1339,11 @@ class Ufmt_Data_Set (object):
         self.fields = Ufmt_Field_Set()
         self.build_rules = Ufmt_Build_Rule_Set()
         self.format_selects = Ufmt_Format_Select_Set()
-
+        if ora_db_str is None:
+            self.ora_db_str = oracle_db_string
+        else:
+            self.ora_db_str = ora_db_str
+            
     def load_from_sql( self, dir_path = None ):
         self.values.load_from_sql('UFMT_VALUE', dir_path )
         self.conversions.load_from_sql('UFMT_CONVERSION', dir_path )
@@ -1370,6 +1399,23 @@ class Ufmt_Data_Set (object):
         self.format_selects.save_to_excel(wb, 'UFMT_FORMAT_SELECT')
         wb.save( file_path )
 
+    def load_from_oracle_db ( self ):
+        try:
+            conn = cx_Oracle.connect( self.ora_db_str )
+        except Exception:
+            logging.error("Can't connect to DB")
+            return
+        self.values.load_from_oracle_db ( conn )
+        self.conversions.load_from_oracle_db ( conn )
+        self.conv_rules.load_from_oracle_db ( conn )
+        self.conditions.load_from_oracle_db ( conn )
+        self.field_formats.load_from_oracle_db ( conn )
+        self.formats.load_from_oracle_db ( conn )
+        self.fields.load_from_oracle_db ( conn )
+        self.build_rules.load_from_oracle_db ( conn )
+        self.format_selects.load_from_oracle_db ( conn )
+        conn.close()
+        
     def link( self ):
         self.conv_rules.link( self.conversions )
         self.conditions.link( self.values, self.conversions, self.conditions )
@@ -1532,10 +1578,18 @@ def test14():
     data_set.change_conv_key ( 165, 1 )
     data_set.export_to_sql()
 
+def test15():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_oracle_db()
+    data_set.link()
+    print(data_set.values.get((12,)))
+    print(data_set.conv_rules.get((1,1)))
+    data_set.save_to_excel('UFMT_DATA_2')
+    
 if __name__ == '__main__':
     #test13()
     #test14()
-    test5()
+    test15()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
