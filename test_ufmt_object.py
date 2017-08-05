@@ -4,7 +4,7 @@ Created on Sat Aug  5 22:32:39 2017
 
 @author: Minh Mai Xuan
 """
-import ufmt_object
+from ufmt_object import *
 
 def test1():
     data_set = Ufmt_Data_Set()
@@ -153,11 +153,45 @@ def test15():
     data_set.save_to_excel('UFMT_DATA_2')
 
 def test16():
-    data_set = ufmt_object.Ufmt_Data_Set()
+    data_set = Ufmt_Data_Set()
     data_set.load_from_excel('UFMT_DATA_2')
     data_set.link()
     print( data_set.values.get( (10,)))
     
+def test_17():
+    '''
+    Adding new values, conditions and field formats into existing UFMT data set
+    '''
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    
+    elms = data_set.values
+    new_value = [None, 1, 0, '99', 'TEST1']
+    data_set.values.add( new_value )
+    new_value = [100, 1, 0, '99', 'TEST2']
+    data_set.values.add( new_value )
+    new_value = [100, 1, 0, '99', 'TEST3']
+    data_set.values.add( new_value )
+    data_set.save_to_excel('UFMT_DATA_2')
+
+    new_cond = ['', '=', '224', '', '361',  '', '', '', '1', 'TEST1']
+    data_set.conditions.add( new_cond )
+    new_cond = ['100', '=', '224', '', '361',  '', '', '', '1', 'TEST2']
+    data_set.conditions.add( new_cond )
+    new_cond = ['100', '=', '224', '', '361',  '', '', '', '1', 'TEST3']
+    data_set.conditions.add( new_cond )
+    
+    elms = data_set.field_formats
+    new_elm = ['', '0', '16', '0', '0', ' ', 'R', 'TEST1']
+    elms.add(new_elm)
+    new_elm = ['50', '0', '16', '0', '0', ' ', 'R', 'TEST2']
+    elms.add(new_elm)
+    new_elm = ['50', '0', '16', '0', '0', ' ', 'R', 'TEST3']
+    elms.add(new_elm)
+    
+    data_set.save_to_excel('UFMT_DATA_2')
+    
 if __name__ == '__main__':
-    test16()
+    test_17()
     

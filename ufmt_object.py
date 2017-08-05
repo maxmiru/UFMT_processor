@@ -1098,6 +1098,26 @@ Delete from {table};
             s += str(elm) + '\n'
         return s
     
+    def find_unused_key( self, min_key = 1, max_key = 9999):
+        keys = [ i[-1] for i in self.set.keys() ]
+        for i in range( min_key, max_key ):
+            if i not in keys:
+                return i
+        
+    def add( self, value_list ):
+        elm = self.new_element(value_list)
+        #check key
+        new_key = elm.key[-1]
+        if new_key is None:
+            new_key = self.find_unused_key()
+            elm.change_key(new_key)
+        elif elm.key in self.set.keys():
+            logging.warning("Key {} already exists, finding new key".format(elm.key) )
+            new_key = self.find_unused_key()
+            elm.change_key(new_key)
+        self.set[elm.key] = elm
+        
+    
 class Ufmt_Value_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1448,8 +1468,41 @@ class Ufmt_Data_Set (object):
 
     def change_field_format_id ( self, old, new ):
         self.field_formats.change_key ( old, new )
+
+def test():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_excel('UFMT_DATA')
+    data_set.link()
+    
+    elms = data_set.values
+    new_value = [None, 1, 0, '99', 'TEST1']
+    data_set.values.add( new_value )
+    new_value = [100, 1, 0, '99', 'TEST2']
+    data_set.values.add( new_value )
+    new_value = [100, 1, 0, '99', 'TEST3']
+    data_set.values.add( new_value )
+    data_set.save_to_excel('UFMT_DATA_2')
+
+    new_cond = ['', '=', '224', '', '361',  '', '', '', '1', 'TEST1']
+    data_set.conditions.add( new_cond )
+    new_cond = ['100', '=', '224', '', '361',  '', '', '', '1', 'TEST2']
+    data_set.conditions.add( new_cond )
+    new_cond = ['100', '=', '224', '', '361',  '', '', '', '1', 'TEST3']
+    data_set.conditions.add( new_cond )
+    
+    elms = data_set.field_formats
+    new_elm = ['', '0', '16', '0', '0', ' ', 'R', 'TEST1']
+    elms.add(new_elm)
+    new_elm = ['50', '0', '16', '0', '0', ' ', 'R', 'TEST2']
+    elms.add(new_elm)
+    new_elm = ['50', '0', '16', '0', '0', ' ', 'R', 'TEST3']
+    elms.add(new_elm)
+    
+    data_set.save_to_excel('UFMT_DATA_2')
+        
     
 if __name__ == '__main__':
+    test()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
