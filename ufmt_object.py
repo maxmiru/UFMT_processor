@@ -4,7 +4,14 @@ This module define classes that are used by ufmt_data_processor
 '''
 
 import os, openpyxl, logging, sys, re, csv
-from enum import IntEnum 
+from enum import IntEnum
+try:
+    import cx_Oracle
+except Exception:
+    logging.warn('Oracle import/export is not supported')
+
+#configuration
+oracle_db_string='SVFE_TEST_BSM/SVFE_TEST_BSM1@BSM_DEV_FE'
 
 #enum constants - start
 class Value_Type(IntEnum):
@@ -105,6 +112,8 @@ class Complex_Value(object):
             else:
                 conv_key = None
             u_value = ufmt_values.get( (value_id, ))
+            if u_value is None:
+                raise ValueError('Invalid value id {}'.format(value_id))
             u_conv = ufmt_convs.get( (conv_key, ))
             self.values.append( u_value )
             self.convs.append( u_conv )
@@ -269,19 +278,23 @@ class Ufmt_Value(object):
         return s
 
     def validate( self, ufmt_data_set ):
-        if self.value_type is Value_Type.COMPLEX:
-            self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
-        elif self.value_type is Value_Type.BITFIELD:
-            self.value = Bitfield_Value ( self.value, ufmt_data_set.values )
-        elif self.value_type is Value_Type.FMT:
-            self.value = ufmt_data_set.formats.get( ( int(self.value), ))
-        elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
-            self.value = int( self.value )
-        elif self.value_type is Value_Type.CONST:
-            if self.value_subtype in (Value_Subtype.INT, Value_Subtype.LONG_LONG ):
+        try:
+            if self.value_type is Value_Type.COMPLEX:
+                self.value = Complex_Value ( self.value, ufmt_data_set.values, ufmt_data_set.conversions )
+            elif self.value_type is Value_Type.BITFIELD:
+                self.value = Bitfield_Value ( self.value, ufmt_data_set.values )
+            elif self.value_type is Value_Type.FMT:
+                self.value = ufmt_data_set.formats.get( ( int(self.value), ))
+            elif self.value_type in ( Value_Type.LOCAL, Value_Type.MONEYFLD, Value_Type.PMT, Value_Type.UMF ):
                 self.value = int( self.value )
-            elif self.value_subtype in ( Value_Subtype.FLOAT, Value_Subtype.FLOAT_IP ):
-                self.value = float( self.value )
+            elif self.value_type is Value_Type.CONST:
+                if self.value_subtype in (Value_Subtype.INT, Value_Subtype.LONG_LONG ):
+                    self.value = int( self.value )
+                elif self.value_subtype in ( Value_Subtype.FLOAT, Value_Subtype.FLOAT_IP ):
+                    self.value = float( self.value )
+        except Exception as e:
+            #logging.error( )
+            print( 'Invalid value {}, error {}'.format( self.value_id, e ) )
             
     def get_raw_value( self ):
         if self.value is None:
@@ -407,8 +420,11 @@ class Ufmt_Conv_Rule(object):
         return s
 
     def validate( self, ufmt_data_set ):
-        if self.conv.conv_type is Conv_Type.ARITHMETIC:
-            self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
+        try:
+            if self.conv.conv_type is Conv_Type.ARITHMETIC:
+                self.dest_value = Arithmetic_Conv_Rule ( self.dest_value, ufmt_data_set.values, ufmt_data_set.conversions )
+        except Exception as e:
+            print('Invalid conv key {},{}, error "{}"'.format( self.get_conv_key(), self.rule_num, e ) )
             
     def get_raw_dest_value( self ):
         return str(self.dest_value)
@@ -1055,6 +1071,24 @@ Delete from {table};
                 col_num=col_num+1
             row_num=row_num+1
 
+    def get_oracle_select_query( self ):
+        return 'SELECT {} FROM {}'.format( ','.join( self.headers ), self.get_table_name() )
+    
+    def load_from_oracle_db ( self, conn ):
+        statement = self.get_oracle_select_query()
+        cursor = conn.cursor().execute( statement )
+        for row in cursor:        
+            data_record = [''] * len(row)
+            for i in range( len(row) ):
+                if row[i] == None:
+                    data_record[i] = ''
+                else:
+                    data_record[i] = str(row[i])
+            
+            logging.debug ( data_record )
+            elm = self.new_element(data_record)
+            self.set[elm.key] = elm
+            
     def get( self, key ):
         return self.set.get(key)
 
@@ -1091,7 +1125,7 @@ class Ufmt_Value_Set (Ufmt_Set):
         value = self.set.pop( old_key )
         value.change_key ( new_value_id )
         self.set[new_key] = value
-        
+       
 class Ufmt_Conversion_Set (Ufmt_Set):
     def __init__ ( self ):
         super().__init__()
@@ -1304,7 +1338,7 @@ class Ufmt_Format_Select_Set (Ufmt_Set):
         
 
 class Ufmt_Data_Set (object):
-    def __init__ ( self ):
+    def __init__ ( self, ora_db_str = None ):
         self.values = Ufmt_Value_Set()
         self.conversions = Ufmt_Conversion_Set()
         self.conv_rules = Ufmt_Conv_Rule_Set()
@@ -1314,7 +1348,11 @@ class Ufmt_Data_Set (object):
         self.fields = Ufmt_Field_Set()
         self.build_rules = Ufmt_Build_Rule_Set()
         self.format_selects = Ufmt_Format_Select_Set()
-
+        if ora_db_str is None:
+            self.ora_db_str = oracle_db_string
+        else:
+            self.ora_db_str = ora_db_str
+            
     def load_from_sql( self, dir_path = None ):
         self.values.load_from_sql('UFMT_VALUE', dir_path )
         self.conversions.load_from_sql('UFMT_CONVERSION', dir_path )
@@ -1370,6 +1408,23 @@ class Ufmt_Data_Set (object):
         self.format_selects.save_to_excel(wb, 'UFMT_FORMAT_SELECT')
         wb.save( file_path )
 
+    def load_from_oracle_db ( self ):
+        try:
+            conn = cx_Oracle.connect( self.ora_db_str )
+        except Exception:
+            logging.error("Can't connect to DB")
+            return
+        self.values.load_from_oracle_db ( conn )
+        self.conversions.load_from_oracle_db ( conn )
+        self.conv_rules.load_from_oracle_db ( conn )
+        self.conditions.load_from_oracle_db ( conn )
+        self.field_formats.load_from_oracle_db ( conn )
+        self.formats.load_from_oracle_db ( conn )
+        self.fields.load_from_oracle_db ( conn )
+        self.build_rules.load_from_oracle_db ( conn )
+        self.format_selects.load_from_oracle_db ( conn )
+        conn.close()
+        
     def link( self ):
         self.conv_rules.link( self.conversions )
         self.conditions.link( self.values, self.conversions, self.conditions )
@@ -1532,10 +1587,18 @@ def test14():
     data_set.change_conv_key ( 165, 1 )
     data_set.export_to_sql()
 
+def test15():
+    data_set = Ufmt_Data_Set()
+    data_set.load_from_oracle_db()
+    data_set.link()
+    print(data_set.values.get((12,)))
+    print(data_set.conv_rules.get((1,1)))
+    data_set.save_to_excel('UFMT_DATA_2')
+    
 if __name__ == '__main__':
     #test13()
     #test14()
-    test5()
+    test15()
     print('Warning! This is a module, please don\'t execute it directly!')
     
     
