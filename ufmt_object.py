@@ -11,7 +11,6 @@ except Exception:
     logging.warning('Oracle import/export is not supported')
 
 #configuration
-oracle_db_string='SVFE_TEST_BSM/SVFE_TEST_BSM1@BSM_DEV_FE'
 
 #enum constants - start
 class Value_Type(IntEnum):
@@ -50,6 +49,9 @@ class Field_Length_Type(IntEnum):
     LLH = 7
     LLLH = 8
     LH = 9
+    LLB_UP = 10
+    LLE = 11
+    LLLE = 12
 class Field_Data_Type(IntEnum):
     ASCII = 0
     BYTE = 1
@@ -396,6 +398,7 @@ class Ufmt_Conv_Rule(object):
                 From_Int(self.is_default)]
 
     def get_excel_values(self ):
+        logging.debug( 'conv_key = {}, dest_value = {}'.format(self.get_conv_key(), self.get_raw_dest_value()) )
         return [self.get_conv_key(),
                 self.rule_num,
                 self.src_value,
